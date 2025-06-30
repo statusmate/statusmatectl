@@ -18,7 +18,7 @@ type AuthResponse struct {
 	User    int    `json:"user"`
 }
 
-func (c *Client) Login(email string, password string) (*User, error) {
+func (c *Client) Login(email string, password string) (*User, *AuthResponse, error) {
 	authReq := AuthRequest{
 		Username: email,
 		Password: password,
@@ -26,12 +26,12 @@ func (c *Client) Login(email string, password string) (*User, error) {
 
 	resp, err := c.Post("/api/auth/signin/", authReq)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to login, invalid credentials")
+		return nil, nil, errors.New("failed to login, invalid credentials")
 	}
 
 	var authResponse AuthResponse
@@ -42,16 +42,10 @@ func (c *Client) Login(email string, password string) (*User, error) {
 
 	c.SetAuthToken(authResponse.Key)
 
-	user, err := c.getMe()
-
+	user, err := c.GetMe()
 	if err != nil {
-		log.Fatalf("Failed to received user: %v", err)
+		return nil, nil, fmt.Errorf("failed to received user: %v", err)
 	}
 
-	err = c.SaveAuthRC(&authResponse, user)
-	if err != nil {
-		fmt.Errorf("failed save token to file")
-	}
-
-	return user, nil
+	return user, &authResponse, nil
 }

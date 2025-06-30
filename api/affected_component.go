@@ -1,6 +1,8 @@
 package api
 
-import "time"
+import (
+	"time"
+)
 
 type AffectedComponent struct {
 	Component int        `json:"component"`

@@ -70,12 +70,12 @@ type StatusPageTheme struct {
 }
 
 type StatusPage struct {
+	UUID                   string                       `json:"uuid" tab:"UUID"`
+	AbsoluteURL            string                       `json:"absolute_url" tab:"URL"`
+	CreatedAt              *time.Time                   `json:"created_at,omitempty" tab:"CreatedAt"`
+	Slug                   string                       `json:"slug" tab:"Domain"`
 	ID                     int                          `json:"id"`
-	UUID                   string                       `json:"uuid"`
-	Slug                   string                       `json:"slug"`
-	AbsoluteURL            string                       `json:"absolute_url"`
-	CreatedAt              time.Time                    `json:"created_at"`
-	UpdatedAt              time.Time                    `json:"updated_at"`
+	UpdatedAt              *time.Time                   `json:"updated_at,omitempty"`
 	Name                   string                       `json:"name"`
 	Description            string                       `json:"description"`
 	Impact                 ImpactType                   `json:"impact"`
@@ -106,7 +106,7 @@ type StatusPage struct {
 	CustomDocsLink         string                       `json:"custom_docs_link"`
 	DarkMode               StatusPageDarkModeEnum       `json:"dark_mode"`
 	PaymentsPaid           bool                         `json:"payments_paid"`
-	PaymentsNextAt         time.Time                    `json:"payments_next_at"`
+	PaymentsNextAt         *time.Time                   `json:"payments_next_at"`
 	PaymentsDailyAmount    int                          `json:"payments_daily_amount"`
 	HidePoweredBy          bool                         `json:"hide_powered_by"`
 }
@@ -137,13 +137,13 @@ func (c *Client) GetPaginatedStatusPages(payload PaginatedRequest) (*Paginated[S
 		return nil, errors.New("failed to retrieve pages: status " + resp.Status)
 	}
 
-	var pages Paginated[StatusPage]
-	err = parseResponseBody(resp, &pages)
+	var result Paginated[StatusPage]
+	err = parseResponseBody(resp, &result)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing response body: %v", err)
 	}
 
-	return &pages, nil
+	return &result, nil
 }
 
 func (c *Client) GetStatusPageBySlug(slug string) (*StatusPage, error) {

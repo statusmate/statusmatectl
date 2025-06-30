@@ -3,87 +3,54 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-	"net/url"
 )
 
 type Client struct {
-	BaseURL   string
-	AuthToken string
-	Username  string
-	Email     string
-	client    *http.Client
+	BaseURL string
+	Token   string
+	client  *http.Client
 }
 
-func NewClient(baseURL string) *Client {
-	return &Client{
-		BaseURL: baseURL,
-		client:  &http.Client{
-			//Transport: &loggingTransport{},
+type QueryParams = map[string]interface{}
+
+func NewClient(baseURL string, logger *slog.Logger) *Client {
+	httpClient := &http.Client{
+		Transport: &loggingTransport{
+			Logger:    logger,
+			Transport: http.DefaultTransport,
 		},
 	}
-}
 
-// NewClientWithToken читает токен из файла и создает клиента
-func NewClientWithToken(baseURL string) (*Client, error) {
-	client := NewClient(baseURL)
-
-	authRC, err := client.LoadAuthRC(baseURL)
-	if err != nil {
-		return nil, errors.New("need auth You need to authorize this machine using `statusmate login`")
-	} else {
-		client.SetEmail(authRC.Email)
-		client.SetUsername(authRC.Username)
-		client.SetAuthToken(authRC.Token)
+	return &Client{
+		BaseURL: baseURL,
+		client:  httpClient,
 	}
-
-	return client, nil
 }
 
 // SetAuthToken устанавливает токен авторизации
 func (c *Client) SetAuthToken(token string) {
-	c.AuthToken = token
-}
-
-func (c *Client) SetUsername(username string) {
-	c.Username = username
-}
-
-func (c *Client) SetEmail(email string) {
-	c.Email = email
+	c.Token = token
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	if c.AuthToken != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Token %s", c.AuthToken))
+	if c.Token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Token %s", c.Token))
 	}
 	req.Header.Set("Content-Type", "application/json")
 	return c.client.Do(req)
 }
 
 // Get выполняет GET-запрос
-func (c *Client) Get(endpoint string, queryParams map[string]string) (*http.Response, error) {
-	// Создаем новый URL с базовым URL и конечной точкой
-	fullURL, err := url.Parse(c.BaseURL + endpoint)
+func (c *Client) Get(endpoint string, queryParams QueryParams) (*http.Response, error) {
+	fullURL, err := c.stringifyQueryParams(endpoint, queryParams)
 	if err != nil {
 		return nil, err
 	}
 
-	// Создаем URL-кодировщик
-	q := fullURL.Query()
-
-	// Добавляем query параметры
-	for key, value := range queryParams {
-		q.Add(key, value)
-	}
-
-	// Устанавливаем обновленные query параметры в URL
-	fullURL.RawQuery = q.Encode()
-
-	// Создаем новый HTTP-запрос
 	req, err := http.NewRequest(http.MethodGet, fullURL.String(), nil)
 	if err != nil {
 		return nil, err

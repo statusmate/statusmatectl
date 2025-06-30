@@ -23,6 +23,8 @@ func loginCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Printf("Log in on %s\n", client.BaseURL)
+
 	// Create a new prompt for email input
 	emailPrompt := promptui.Prompt{
 		Label:    "Email",
@@ -46,10 +48,17 @@ func loginCmdF(command *cobra.Command, args []string) error {
 		return fmt.Errorf("Error entering password: %v", err)
 	}
 
-	user, err := client.Login(email, password)
+	user, authResponse, err := client.Login(email, password)
 
 	if err != nil {
 		return err
+	}
+
+	authRC := NewAuthRC(authResponse)
+
+	err = SaveAuthRC(client.BaseURL, authRC)
+	if err != nil {
+		return fmt.Errorf("failed save token to file: %v", err)
 	}
 
 	fmt.Printf("Welcome, %s\n", user.Username)

@@ -1,5 +1,5 @@
 # Название бинарного файла
-BINARY_NAME = statusmate
+BINARY_NAME = st4
 
 # Путь к исходному файлу Go
 SRC = ./main.go

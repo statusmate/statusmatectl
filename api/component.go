@@ -8,23 +8,23 @@ import (
 )
 
 type Component struct {
+	UUID        *string    `json:"uuid,omitempty" tab:"UUID"`
+	Name        string     `json:"name" tab:"Name"`
+	Impact      ImpactType `json:"impact" tab:"Impact"`
 	ID          *int       `json:"id,omitempty"`
-	UUID        *string    `json:"uuid,omitempty"`
 	CreatedAt   *time.Time `json:"created_at,omitempty"`
 	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
 	Index       int        `json:"index"`
-	Name        string     `json:"name"`
 	Enabled     bool       `json:"enabled"`
 	Description string     `json:"description"`
-	Impact      ImpactType `json:"impact"`
 	Histogram   bool       `json:"histogram"`
 	StatusPage  int        `json:"status_page"`
-	Uptime      float64    `json:"uptime"`
+	Uptime      string     `json:"uptime"`
 	UptimeDirty bool       `json:"uptime_dirty"`
 	Collapse    bool       `json:"collapse"`
 	Parent      *int       `json:"parent"`
 	Private     bool       `json:"private"`
-	StartDate   *time.Time `json:"start_date"`
+	StartDate   *string    `json:"start_date,omitempty"`
 }
 
 type BatchUpdateComponent struct {
@@ -55,13 +55,6 @@ func (c *Client) GetPaginatedComponents(payload PaginatedRequest) (*Paginated[Co
 	return &components, nil
 }
 
-func (c *Client) GetPaginatedComponentsByStatusPageSlug(statusPageSlug string) (*Paginated[Component], error) {
-	request := NewAllPaginatedRequest(map[string]interface{}{
-		"status_page": statusPageSlug,
-	})
-	return c.GetPaginatedComponents(request)
-}
-
 func (c *Client) CreateComponent(component *Component) (*Component, error) {
 	resp, err := c.Post("/api/component/", component)
 	if err != nil {
@@ -82,7 +75,6 @@ func (c *Client) CreateComponent(component *Component) (*Component, error) {
 	return &newComponent, nil
 }
 
-// GetComponentByUUID получает компонент по его UUID.
 func (c *Client) GetComponentByUUID(uuid string) (*Component, error) {
 	// Формируем URL с параметром uuid
 	url := fmt.Sprintf("/api/component/%s/", uuid)
@@ -146,7 +138,6 @@ func (c *Client) BatchUpdateComponent(partial []BatchUpdateComponent) (*Componen
 	return &updatedComponent, nil
 }
 
-// DeleteComponent удаляет компонент по его UUID.
 func (c *Client) DeleteComponent(uuid string) error {
 	// Формируем URL с параметром uuid
 	url := fmt.Sprintf("/api/component/%s/", uuid)

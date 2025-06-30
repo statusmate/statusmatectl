@@ -24,7 +24,7 @@ type User struct {
 	ReceiveNotifications  bool    `json:"receive_notifications"`
 }
 
-func (c *Client) getMe() (*User, error) {
+func (c *Client) GetMe() (*User, error) {
 	resp, err := c.Get("/api/auth/me/", nil)
 
 	if err != nil {

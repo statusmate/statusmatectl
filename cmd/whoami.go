@@ -20,7 +20,12 @@ func whoamiCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Username: %s\n", client.Username)
+	user, err := client.GetMe()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Username: %s\n", user.Username)
 
 	return nil
 }
