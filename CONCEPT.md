@@ -1,35 +1,35 @@
 ---
-statusmate login --server=<statusmate.ru | statusmate.top>
+st4 login --server=<statusmate.ru | statusmate.top>
 ---
 stautsmate notice Log in on https://statusmate.ru/
 Username:
 Password:
 
 ---
-statusmate config use-statuspage <domain> - использовать страницу по default
-statusmate config use-releasepage <domain> - использовать
-statusmate config show - вывести данные
+st4 config use-statuspage <domain> - использовать страницу по default
+st4 config use-releasepage <domain> - использовать
+st4 config show - вывести данные
 ---
 
 
 ---
-statusmate ls - показать список страниц
+st4 ls - показать список страниц
 
-statusmate ls 
+st4 ls
             c | components - показать список компонентов
             i | incidents - показать список инцидентов
             m | maintenance - показать список обслуживании
-        
+
 
 ---
 
 ---
-statusmate version - вернуть версию
+st4 version - вернуть версию
 ---
 
 
 ```bash
-statusmate add
+st4 add
                 -i | --incident - Создать инцидент
                 -m | --maintenance - создать обслуживание
                     [--t] - использовать шаблон для создания
@@ -76,11 +76,11 @@ um cdn
 
 ```bash
 
-statusmate list-page 
+st4 list-page
 
-statusmate config use-status-page <uuid> 
+st4 config use-status-page <uuid>
 
-statusmate create-incident --name "У анас проблемы" --page "status.statumate.ru"  
+st4 create-incident --name "Обнаружены проблемы с работой серверов" --page "status.statumate.ru"
 Incident "Database Outage" created successfully!
 
 Summary:
@@ -92,6 +92,6 @@ Summary:
     created_at=2024-10-22 12:34
 
 
-statusmate update-incident --uuid <uuid-incident>
+st4 update-incident --uuid <uuid-incident>
 
 ```

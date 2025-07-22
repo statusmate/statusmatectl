@@ -18,7 +18,7 @@ func InitClientCommandContextCobra(command *cobra.Command) (*api.Client, error) 
 
 	authRC, err := LoadAuthRC(client.BaseURL)
 	if err != nil {
-		return nil, errors.New("need auth You need to authorize this machine using `statusmate login`")
+		return nil, errors.New("need auth You need to authorize this machine using `st4 login`")
 	}
 	client.SetAuthToken(authRC.Token)
 
@@ -56,13 +56,13 @@ func createLogger(server string) (*slog.Logger, error) {
 	return logger, nil
 }
 
-func GetStatusPage(client *api.Client, command *cobra.Command) (*api.StatusPage, error) {
+func GetStatusPage(cl *api.Client, command *cobra.Command) (*api.StatusPage, error) {
 	slug, err := command.Flags().GetString("page")
 	if err != nil {
 		return nil, err
 	}
 
-	page, err := client.GetStatusPageBySlug(slug)
+	page, err := cl.GetStatusPageBySlug(slug)
 	if err != nil {
 		return nil, err
 	}
