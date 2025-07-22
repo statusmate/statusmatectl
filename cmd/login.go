@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +18,6 @@ func init() {
 }
 
 func loginCmdF(command *cobra.Command, args []string) error {
-	//выполнить инициализацию приложения
 	client, err := InitAnonClientCommandContextCobra(command)
 	if err != nil {
 		return err
@@ -25,7 +25,6 @@ func loginCmdF(command *cobra.Command, args []string) error {
 
 	fmt.Printf("Log in on %s\n", client.BaseURL)
 
-	// Create a new prompt for email input
 	emailPrompt := promptui.Prompt{
 		Label:    "Email",
 		Validate: validateEmail,
@@ -36,10 +35,9 @@ func loginCmdF(command *cobra.Command, args []string) error {
 		return fmt.Errorf("wrror entering email: %v", err)
 	}
 
-	// Create a new prompt for password input
 	passwordPrompt := promptui.Prompt{
 		Label:    "Password",
-		Mask:     '*', // Mask to hide the input for password
+		Mask:     '*',
 		Validate: validatePassword,
 	}
 
@@ -66,16 +64,13 @@ func loginCmdF(command *cobra.Command, args []string) error {
 	return nil
 }
 
-// Email validation function
 func validateEmail(input string) error {
 	if len(input) == 0 {
 		return fmt.Errorf("Email cannot be empty")
 	}
-	// Additional email format validation can be added here
 	return nil
 }
 
-// Password validation function
 func validatePassword(input string) error {
 	if len(input) < 8 {
 		return fmt.Errorf("Password must be at least 6 characters long")

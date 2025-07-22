@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"os"
-	"statusmatectl/api"
-	"statusmatectl/printer"
+	"github.com/statusmate/statusmatectl/pkg/api"
+	"github.com/statusmate/statusmatectl/pkg/printer"
 )
 
 var ListIncidentsCmd = &cobra.Command{
@@ -33,17 +34,14 @@ func listIncidentsCmdF(command *cobra.Command, args []string) error {
 		return errors.Wrap(err, "all flag error")
 	}
 
-	page, err := command.Flags().GetString("page")
+	statusPage, err := GetStatusPage(client, command)
 	if err != nil {
 		return errors.Wrap(err, "page flag error")
 	}
 
 	filters := api.PaginatedRequestFilter{
-		"status": api.IncidentActiveStatusList(),
-	}
-
-	if page != "" {
-		filters["status_page"] = page
+		"status":      api.IncidentActiveStatusList(),
+		"status_page": statusPage.ID,
 	}
 
 	if showAll {

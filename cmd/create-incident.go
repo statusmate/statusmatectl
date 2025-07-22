@@ -3,11 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
-	"statusmatectl/api"
-	"statusmatectl/editor"
+
+	"github.com/spf13/cobra"
+	"github.com/statusmate/statusmatectl/pkg/api"
+	"github.com/statusmate/statusmatectl/pkg/editor"
 )
 
 var CreateIncidentCmd = &cobra.Command{
@@ -56,6 +57,7 @@ func init() {
 	CreateIncidentCmd.Flags().BoolP("yes", "y", false, "yes for prompt")
 	//statusmate create-incident  --dry
 	CreateIncidentCmd.Flags().Bool("dry", false, "Dry run, check data and open editor from $EDITOR")
+
 	RootCmd.AddCommand(CreateIncidentCmd)
 }
 

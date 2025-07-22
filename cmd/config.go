@@ -3,10 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"statusmatectl/api"
-	"strings"
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 var ConfigCmd = &cobra.Command{

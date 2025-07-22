@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
-	"statusmatectl/api"
+
+	"github.com/spf13/cobra"
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 func InitClientCommandContextCobra(command *cobra.Command) (*api.Client, error) {
@@ -15,10 +16,8 @@ func InitClientCommandContextCobra(command *cobra.Command) (*api.Client, error) 
 		return nil, err
 	}
 
-	token := command.Context().Value("Token")
-
 	authRC, err := LoadAuthRC(client.BaseURL)
-	if token {
+	if err != nil {
 		return nil, errors.New("need auth You need to authorize this machine using `statusmate login`")
 	}
 	client.SetAuthToken(authRC.Token)
@@ -32,10 +31,10 @@ func InitAnonClientCommandContextCobra(command *cobra.Command) (*api.Client, err
 		return nil, errors.New("server flag error")
 	}
 
-	return newClient(server)
+	return NewClient(server)
 }
 
-func newClient(server string) (*api.Client, error) {
+func NewClient(server string) (*api.Client, error) {
 	logger, err := createLogger(server)
 	if err != nil {
 		return nil, err

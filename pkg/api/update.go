@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// Update представляет структуру обновления инцидента или обслуживания
 type Update[T any] struct {
 	ID          int                 `json:"id"`
 	At          time.Time           `json:"at"`

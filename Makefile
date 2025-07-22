@@ -1,10 +1,7 @@
-# Название бинарного файла
 BINARY_NAME = st4
 
-# Путь к исходному файлу Go
 SRC = ./main.go
 
-# Команды
 all: build
 
 build:

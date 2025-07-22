@@ -2,7 +2,8 @@ package main
 
 import (
 	"os"
-	"statusmatectl/cmd"
+
+	"github.com/statusmate/statusmatectl/cmd"
 )
 
 func main() {

@@ -32,7 +32,7 @@ func Run(args []string) error {
 	return RootCmd.ExecuteContext(ctx)
 }
 
-func printPanic(x any) {
+func printPanic(_ any) {
 	u, err := url.Parse("https://github.com/statusmate/statusmate/issues/new")
 	if err != nil {
 		panic(err)

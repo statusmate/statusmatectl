@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"statusmatectl/api"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 type AuthRC struct {
 	API                string `json:"api"`
-	Token              string `json:"token'"`
+	Token              string `json:"token"`
 	DefaultStatusPage  string `json:"default_status_page"`
 	DefaultReleasePage string `json:"default_release_page"`
 }
@@ -27,7 +28,6 @@ func NewAuthRC(auth *api.AuthResponse) *AuthRC {
 	}
 }
 
-// SaveAuthRC сохраняет auth data в файл ~/.statusmate/{server}/authrc
 func SaveAuthRC(domain string, authRC *AuthRC) error {
 	filename, err := checkDir(domain, "authrc")
 	if err != nil {

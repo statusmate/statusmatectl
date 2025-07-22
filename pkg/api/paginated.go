@@ -7,7 +7,7 @@ type Paginated[T any] struct {
 	Results []T `json:"results"`
 }
 
-type PaginatedRequestFilter = map[string]interface{}
+type PaginatedRequestFilter = map[string]any
 
 type PaginatedRequest struct {
 	Ordering string                 `json:"ordering"`
@@ -22,14 +22,12 @@ var defaultValues = PaginatedRequest{
 	Page:     1,
 	Ordering: "",
 	Search:   "",
-	Filter:   make(map[string]interface{}),
+	Filter:   make(map[string]any),
 }
 
-// NewPaginatedReq создает объект PaginatedRequest с возможностью переопределения значений.
 func NewPaginatedRequest(size, page int, ordering, search string, filter PaginatedRequestFilter) PaginatedRequest {
 	req := defaultValues
 
-	// Если переданы новые значения, переопределяем их
 	if size > 0 {
 		req.Size = size
 	}
@@ -53,7 +51,6 @@ func NewAllPaginatedRequest(filter PaginatedRequestFilter) PaginatedRequest {
 	return NewPaginatedRequest(1000, 0, "", "", filter)
 }
 
-// ConvertToQueryParams преобразует объект PaginatedRequest в карту query параметров.
 func ConvertToQueryParams(req PaginatedRequest) QueryParams {
 	queryParams := QueryParams{
 		"ordering": req.Ordering,
@@ -62,7 +59,6 @@ func ConvertToQueryParams(req PaginatedRequest) QueryParams {
 		"search":   req.Search,
 	}
 
-	// Добавляем фильтры, если они есть
 	for key, value := range req.Filter {
 		queryParams[key] = value
 	}

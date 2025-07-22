@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func Marshal(v interface{}, commentsMap *map[string]string) (string, error) {
+func Marshal(v any, commentsMap *map[string]string) (string, error) {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		return "", errors.New("expected a non-nil pointer to a struct")
@@ -24,22 +24,19 @@ func Marshal(v interface{}, commentsMap *map[string]string) (string, error) {
 	var buffer bytes.Buffer
 	writer := bufio.NewWriter(&buffer)
 
-	// Обработка полей структуры
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
 		fieldValue := val.Field(i)
 
-		// Получаем тег из структуры
 		tag := field.Tag.Get("format")
 
 		if commentsMap != nil {
-			// Получаем комментарий из мапы по тегу
 			comment, ok := (*commentsMap)[tag]
 
 			if ok && comment != "" {
 				commentLines := strings.Split(comment, "\n")
 				for _, commentLine := range commentLines {
-					if _, err := writer.WriteString(fmt.Sprintf("# %s\n", commentLine)); err != nil {
+					if _, err := fmt.Fprintf(writer, "# %s\n", commentLine); err != nil {
 						return "", err
 					}
 				}
@@ -47,23 +44,22 @@ func Marshal(v interface{}, commentsMap *map[string]string) (string, error) {
 		}
 
 		if tag != "" {
-			if _, err := writer.WriteString(fmt.Sprintf("[%s]\n", tag)); err != nil {
+			if _, err := fmt.Fprintf(writer, "[%s]\n", tag); err != nil {
 				return "", err
 			}
 		}
 
-		// Проверяем, является ли поле массивом строк
 		switch fieldValue.Kind() {
 		case reflect.Slice:
 			if fieldValue.Type().Elem().Kind() == reflect.String {
 				for j := 0; j < fieldValue.Len(); j++ {
-					if _, err := writer.WriteString(fmt.Sprintf("%s\n", fieldValue.Index(j).String())); err != nil {
+					if _, err := fmt.Fprintf(writer, "%s\n", fieldValue.Index(j).String()); err != nil {
 						return "", err
 					}
 				}
 			}
 		case reflect.String:
-			if _, err := writer.WriteString(fmt.Sprintf("%s\n", fieldValue.String())); err != nil {
+			if _, err := fmt.Fprintf(writer, "%s\n", fieldValue.String()); err != nil {
 				return "", err
 			}
 
@@ -79,7 +75,6 @@ func Marshal(v interface{}, commentsMap *map[string]string) (string, error) {
 			}
 		}
 
-		// Добавляем разделитель между полями
 		if _, err := writer.WriteString("\n"); err != nil {
 			return "", err
 		}
@@ -92,7 +87,7 @@ func Marshal(v interface{}, commentsMap *map[string]string) (string, error) {
 	return buffer.String(), nil
 }
 
-func Unmarshal(data string, v interface{}) error {
+func Unmarshal(data string, v any) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() != reflect.Ptr || val.IsNil() {
 		return errors.New("expected a non-nil pointer to a struct")
@@ -119,13 +114,10 @@ func Unmarshal(data string, v interface{}) error {
 
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
-			// Игнорируем пустые строки и комментарии
 			continue
 		}
 
-		// Если строка начинается с '[', то это заголовок поля
 		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
-			// Сохраняем значение предыдущего поля, если есть
 			if inMultiline && currentField != "" {
 				setFieldValue(val, currentField, currentValue.String())
 				currentValue.Reset()
@@ -136,7 +128,6 @@ func Unmarshal(data string, v interface{}) error {
 			continue
 		}
 
-		// Если продолжается многострочное значение, добавляем строку
 		if inMultiline {
 			if currentValue.Len() > 0 {
 				currentValue.WriteString("\n")
@@ -145,7 +136,6 @@ func Unmarshal(data string, v interface{}) error {
 		}
 	}
 
-	// Устанавливаем последнее поле, если оно было многострочным
 	if inMultiline && currentField != "" {
 		setFieldValue(val, currentField, currentValue.String())
 	}
@@ -172,7 +162,6 @@ func setFieldValue(val reflect.Value, fieldName, value string) {
 			field.SetString(value)
 
 		case reflect.Bool:
-			// Преобразуем строковые значения в bool
 			switch strings.ToLower(strings.TrimSpace(value)) {
 			case "1", "yes", "true", "on":
 				field.SetBool(true)

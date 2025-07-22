@@ -31,7 +31,6 @@ func NewClient(baseURL string, logger *slog.Logger) *Client {
 	}
 }
 
-// SetAuthToken устанавливает токен авторизации
 func (c *Client) SetAuthToken(token string) {
 	c.Token = token
 }
@@ -44,7 +43,6 @@ func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-// Get выполняет GET-запрос
 func (c *Client) Get(endpoint string, queryParams QueryParams) (*http.Response, error) {
 	fullURL, err := c.stringifyQueryParams(endpoint, queryParams)
 	if err != nil {
@@ -59,8 +57,7 @@ func (c *Client) Get(endpoint string, queryParams QueryParams) (*http.Response, 
 	return c.doRequest(req)
 }
 
-// Post выполняет POST-запрос с телом запроса
-func (c *Client) Post(endpoint string, body interface{}) (*http.Response, error) {
+func (c *Client) Post(endpoint string, body any) (*http.Response, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -76,7 +73,7 @@ func (c *Client) Post(endpoint string, body interface{}) (*http.Response, error)
 }
 
 // Patch выполняет PATCH-запрос с телом запроса
-func (c *Client) Patch(endpoint string, body interface{}) (*http.Response, error) {
+func (c *Client) Patch(endpoint string, body any) (*http.Response, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -101,7 +98,7 @@ func (c *Client) Delete(endpoint string) (*http.Response, error) {
 }
 
 // Utility method to parse the response body
-func parseResponseBody(resp *http.Response, v interface{}) error {
+func parseResponseBody(resp *http.Response, v any) error {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err

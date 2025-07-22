@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"statusmatectl/api"
 	"text/tabwriter"
 	"time"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 func PrintAsTable[T any](writer io.Writer, paginated *api.Paginated[T], config *PrintTableConfig) error {

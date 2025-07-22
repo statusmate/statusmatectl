@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"log/slog"
 	"net/url"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var RootCmd = &cobra.Command{
-	Use:          "statusmate",
-	Short:        "StatusMate CLI tool",
+	Use:          "st4",
+	Short:        "Statusmate cli tool",
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		server, err := cmd.Flags().GetString("server")
@@ -26,7 +27,7 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().String("server", "https://devstatusmate.ru", "Server system")
+	RootCmd.PersistentFlags().String("server", "https://statusmate.top", "Server api url")
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Show detailed information")
 }
 

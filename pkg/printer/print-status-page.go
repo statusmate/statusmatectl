@@ -2,14 +2,14 @@ package printer
 
 import (
 	"io"
-	"statusmatectl/api"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
-func PrintMaintenances(w io.Writer, paginated *api.Paginated[api.Maintenance], config *PrintTableConfig) error {
+func PrintStatusPages(w io.Writer, paginated *api.Paginated[api.StatusPage], config *PrintTableConfig) error {
 	if config.Format == PrintTableFormatTable {
 		return PrintAsTable(w, paginated, config)
 	}
-
 	if config.Format == PrintTableFormatJSON {
 		return PrintAsJSON(w, paginated, config)
 	}

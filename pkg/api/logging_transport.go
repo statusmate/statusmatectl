@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log/slog" // Импортируем slog
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 )

@@ -3,8 +3,9 @@ package printer
 import (
 	"fmt"
 	"io"
-	"statusmatectl/api"
 	"strings"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 func PrintSummaryIncident(w io.Writer, incident *api.Incident) error {

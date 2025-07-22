@@ -2,7 +2,8 @@ package printer
 
 import (
 	"io"
-	"statusmatectl/api"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 func PrintIncidents(w io.Writer, paginated *api.Paginated[api.Incident], config *PrintTableConfig) error {

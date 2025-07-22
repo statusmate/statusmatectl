@@ -2,12 +2,12 @@ package printer
 
 import (
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/list"
 	"io"
-	"statusmatectl/api"
+
+	"github.com/jedib0t/go-pretty/v6/list"
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
-// PrintComponents prints a table of components and their nested components.
 func PrintComponents(w io.Writer, paginated *api.Paginated[api.Component], config *PrintTableConfig) error {
 	if config.Format == PrintTableFormatJSON {
 		return PrintAsJSON(w, paginated, config)

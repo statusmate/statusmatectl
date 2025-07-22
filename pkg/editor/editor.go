@@ -7,15 +7,10 @@ import (
 	"strings"
 )
 
-// DefaultEditor is vim because we're adults ;)
 const DefaultEditor = "vim"
 
-// PreferredEditorResolver is a function that returns an editor that the user
-// prefers to use, such as the configured `$EDITOR` environment variable.
 type PreferredEditorResolver func() string
 
-// GetPreferredEditorFromEnvironment returns the user's editor as defined by the
-// `$EDITOR` environment variable, or the `DefaultEditor` if it is not set.
 func GetPreferredEditorFromEnvironment() string {
 	editor := os.Getenv("EDITOR")
 
@@ -33,14 +28,10 @@ func resolveEditorArguments(executable string, filename string) []string {
 		args = append([]string{"--wait"}, args...)
 	}
 
-	// Other common editors
-
 	return args
 }
 
-// OpenFileInEditor opens filename in a text editor.
 func OpenFileInEditor(filename string, resolveEditor PreferredEditorResolver) error {
-	// Get the full executable path for the editor.
 	executable, err := exec.LookPath(resolveEditor())
 	if err != nil {
 		return err
@@ -54,9 +45,6 @@ func OpenFileInEditor(filename string, resolveEditor PreferredEditorResolver) er
 	return cmd.Run()
 }
 
-// CaptureInputFromEditor opens a temporary file in a text editor and returns
-// the written bytes on success or an error on failure. It handles deletion
-// of the temporary file behind the scenes.
 func CaptureInputFromEditor(data []byte, resolveEditor PreferredEditorResolver) ([]byte, error) {
 	file, err := os.CreateTemp(os.TempDir(), "*")
 	if err != nil {
@@ -69,7 +57,6 @@ func CaptureInputFromEditor(data []byte, resolveEditor PreferredEditorResolver) 
 		return nil, fmt.Errorf("failed to save data: %v", err)
 	}
 
-	// Defer removal of the temporary file in case any of the next steps fail.
 	defer os.Remove(filename)
 
 	if err = file.Close(); err != nil {

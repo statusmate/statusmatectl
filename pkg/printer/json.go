@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"statusmatectl/api"
+
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 func PrintAsJSON[T any](writer io.Writer, paginated *api.Paginated[T], config *PrintTableConfig) error {

@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"os"
-	"statusmatectl/api"
-	"statusmatectl/printer"
+	"github.com/statusmate/statusmatectl/pkg/api"
+	"github.com/statusmate/statusmatectl/pkg/printer"
 )
 
 var ListStatusPagesCmd = &cobra.Command{
