@@ -15,12 +15,23 @@ var ListIncidentsCmd = &cobra.Command{
 	RunE:  listIncidentsCmdF,
 }
 
+var ShortListIncidentsCmd = &cobra.Command{
+	Use:   "i",
+	Short: "List incidents",
+	RunE:  listIncidentsCmdF,
+}
+
 func init() {
 	ListIncidentsCmd.Flags().BoolP("all", "a", false, "List active incidents")
-	ListIncidentsCmd.Flags().String("page", "", "Status page")
+	ListIncidentsCmd.Flags().StringP("page", "p", "", "Status page")
 	ListIncidentsCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
 
+	ShortListIncidentsCmd.Flags().BoolP("all", "a", false, "List active incidents")
+	ShortListIncidentsCmd.Flags().StringP("page", "p", "", "Status page")
+	ShortListIncidentsCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
+
 	RootCmd.AddCommand(ListIncidentsCmd)
+	LsCmd.AddCommand(ShortListIncidentsCmd)
 }
 
 func listIncidentsCmdF(command *cobra.Command, args []string) error {

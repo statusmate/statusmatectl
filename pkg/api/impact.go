@@ -20,6 +20,7 @@ var impactMap = map[string]ImpactType{
 	"o":           ImpactTypeOperational,
 	"op":          ImpactTypeOperational,
 	"operational": ImpactTypeOperational,
+	"+":           ImpactTypeOperational,
 
 	"u":                 ImpactTypeUnderMaintenance,
 	"um":                ImpactTypeUnderMaintenance,
@@ -33,6 +34,7 @@ var impactMap = map[string]ImpactType{
 	"po":             ImpactTypePartialOutage,
 	"partial_outage": ImpactTypePartialOutage,
 
+	"-":            ImpactTypeMajorOutage,
 	"m":            ImpactTypeMajorOutage,
 	"mo":           ImpactTypeMajorOutage,
 	"major_outage": ImpactTypeMajorOutage,

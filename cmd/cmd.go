@@ -4,9 +4,15 @@ import (
 	"context"
 	"net/url"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 const Version = "0.0.1"
+
+func init() {
+	godotenv.Load()
+}
 
 func Run(args []string) error {
 	RootCmd.SetArgs(args)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -20,8 +21,22 @@ var UseStatusPageCmd = &cobra.Command{
 	RunE:  useStatusPageCmdF,
 }
 
+var ConfigPathCmd = &cobra.Command{
+	Use:   "path",
+	Short: "Show path to the config file",
+	RunE:  configPathCmdF,
+}
+
+var ConfigShowCmd = &cobra.Command{
+	Use:   "show",
+	Short: "Show current config",
+	RunE:  configShowCmdF,
+}
+
 func init() {
 	ConfigCmd.AddCommand(UseStatusPageCmd)
+	ConfigCmd.AddCommand(ConfigPathCmd)
+	ConfigCmd.AddCommand(ConfigShowCmd)
 	RootCmd.AddCommand(ConfigCmd)
 }
 
@@ -31,6 +46,36 @@ func getFirstValue(input string) (string, error) {
 		return "", errors.New("the string is empty or contains no values")
 	}
 	return parts[0], nil
+}
+
+func configPathCmdF(command *cobra.Command, args []string) error {
+	server, err := command.Flags().GetString("server")
+	if err != nil {
+		return err
+	}
+	path, err := checkDir(server, "authrc")
+	if err != nil {
+		return err
+	}
+	fmt.Println(path)
+	return nil
+}
+
+func configShowCmdF(command *cobra.Command, args []string) error {
+	server, err := command.Flags().GetString("server")
+	if err != nil {
+		return err
+	}
+	authRC, err := LoadAuthRC(server)
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(authRC, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	return nil
 }
 
 func useStatusPageCmdF(command *cobra.Command, args []string) error {
@@ -48,7 +93,7 @@ func useStatusPageCmdF(command *cobra.Command, args []string) error {
 	items := make([]string, statusPages.Count)
 
 	for idx, statusPage := range statusPages.Results {
-		items[idx] = fmt.Sprintf("%s %s", statusPage.UUID, statusPage.AbsoluteURL)
+		items[idx] = fmt.Sprintf("%s %s", statusPage.Slug, statusPage.AbsoluteURL)
 	}
 
 	prompt := promptui.Select{
@@ -57,20 +102,32 @@ func useStatusPageCmdF(command *cobra.Command, args []string) error {
 	}
 
 	_, result, err := prompt.Run()
-
 	if err != nil {
 		fmt.Printf("Prompt failed %v\n", err)
 		return nil
 	}
 
-	UUID, err := getFirstValue(result)
-
+	slug, err := getFirstValue(result)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("You choose %s\n", UUID)
+	server, err := command.Flags().GetString("server")
+	if err != nil {
+		return err
+	}
 
-	// сохранить в authrc
+	authRC, err := LoadAuthRC(server)
+	if err != nil {
+		return err
+	}
+
+	authRC.DefaultStatusPage = slug
+
+	if err := SaveAuthRC(server, authRC); err != nil {
+		return err
+	}
+
+	fmt.Printf("Default status page set to %s\n", slug)
 	return nil
 }

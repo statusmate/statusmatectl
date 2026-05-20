@@ -7,8 +7,8 @@ import (
 )
 
 var CommentsMap = map[string]string{
-	"name": "Название инцидента",
-	"desc": "Описание инцидента",
+	"title":       "Название инцидента",
+	"description": "Описание инцидента",
 	"status": `Available statuses:
 - incident_investigating
 - incident_identified
@@ -23,17 +23,16 @@ var CommentsMap = map[string]string{
 }
 
 type Incident struct {
-	Name        string   `format:"name"`
-	Description string   `format:"desc"`
+	Title       string   `format:"title"`
+	Description string   `format:"description"`
 	Status      string   `format:"status"`
 	Notify      bool     `format:"notify"`
 	Affected    []string `format:"affected"`
 }
 
-// Тест на проверку корректного маршалинга структуры с комментариями
 func TestMarshal(t *testing.T) {
 	incident := Incident{
-		Name: "Test Incident",
+		Title: "Test Incident",
 		Description: `Test Description
 Second string`,
 		Notify:   true,
@@ -42,11 +41,11 @@ Second string`,
 	}
 
 	expected := `# Название инцидента
-[name]
+[title]
 Test Incident
 
 # Описание инцидента
-[desc]
+[description]
 Test Description
 Second string
 
@@ -87,11 +86,11 @@ um cdn
 func TestUnmarshal(t *testing.T) {
 	data := `
 # Название инцидента
-[name]
+[title]
 Test Incident
 
 # Описание инцидента
-[desc]
+[description]
 Test Description
 Test second string
 
@@ -115,7 +114,7 @@ um cdn
 `
 
 	expected := Incident{
-		Name:        "Test Incident",
+		Title:       "Test Incident",
 		Description: "Test Description\nTest second string",
 		Status:      "incident_investigating",
 		Notify:      false,
@@ -137,11 +136,11 @@ um cdn
 func TestUnmarshalWithComments(t *testing.T) {
 	data := `
 # This is a comment
-[name]
+[title]
 Test Incident
 
 # Another comment here
-[desc]
+[description]
 Test Description
 
 [status]
@@ -154,7 +153,7 @@ um cdn
 `
 
 	expected := Incident{
-		Name:        "Test Incident",
+		Title:       "Test Incident",
 		Description: "Test Description",
 		Status:      "incident_investigating",
 		Affected:    []string{"op cloud", "um cdn"},
@@ -174,7 +173,7 @@ um cdn
 // Тест на пустые поля при анмаршалинге
 func TestUnmarshalEmptyFields(t *testing.T) {
 	data := `
-[name]
+[title]
 
 [desc]
 
@@ -184,10 +183,10 @@ func TestUnmarshalEmptyFields(t *testing.T) {
 `
 
 	expected := Incident{
-		Name:        "",
+		Title:       "",
 		Description: "",
 		Status:      "",
-		Affected:    []string{""},
+		Affected:    []string{},
 	}
 
 	var incident Incident
@@ -204,10 +203,10 @@ func TestUnmarshalEmptyFields(t *testing.T) {
 // Тест на обработку пустого массива Affected
 func TestUnmarshalEmptyAffected(t *testing.T) {
 	data := `
-[name]
+[title]
 Test Incident
 
-[desc]
+[description]
 Test Description
 
 [status]
@@ -217,10 +216,10 @@ incident_resolved
 `
 
 	expected := Incident{
-		Name:        "Test Incident",
+		Title:       "Test Incident",
 		Description: "Test Description",
 		Status:      "incident_resolved",
-		Affected:    []string{""},
+		Affected:    []string{},
 	}
 
 	var incident Incident
@@ -237,7 +236,7 @@ incident_resolved
 // Тест на корректную обработку всех комментариев при маршалинге
 func TestMarshalWithComments(t *testing.T) {
 	incident := Incident{
-		Name:        "Test Incident",
+		Title:       "Test Incident",
 		Description: "Test Description",
 		Status:      "incident_identifying",
 		Affected:    []string{"op cloud", "um cdn"},
@@ -257,16 +256,16 @@ func TestMarshalWithComments(t *testing.T) {
 // Тест на корректную обработку без комментариев при маршалинге
 func TestMarshalWithoutComments(t *testing.T) {
 	incident := Incident{
-		Name:        "Test Incident",
+		Title:       "Test Incident",
 		Description: "Test Description",
 		Status:      "incident_identifying",
 		Affected:    []string{"op cloud", "um cdn"},
 	}
 
-	expected := `[name]
+	expected := `[title]
 Test Incident
 
-[desc]
+[description]
 Test Description
 
 [status]

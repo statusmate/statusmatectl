@@ -13,4 +13,10 @@ clean:
 run: build
 	./$(BINARY_NAME)
 
-.PHONY: all build clean run
+release:
+	goreleaser release --clean
+
+release-snapshot:
+	goreleaser release --snapshot --clean
+
+.PHONY: all build clean run release release-snapshot

@@ -24,47 +24,95 @@ func PrintComponents(w io.Writer, paginated *api.Paginated[api.Component], confi
 	return nil
 }
 
+func buildComponentMap(components []api.Component) map[int]*api.Component {
+	m := make(map[int]*api.Component, len(components))
+	for i := range components {
+		if components[i].ID != nil {
+			m[*components[i].ID] = &components[i]
+		}
+	}
+	return m
+}
+
+func renderList(w io.Writer, l list.Writer) error {
+	if _, err := fmt.Fprintln(w, l.Render()); err != nil {
+		return err
+	}
+	return nil
+}
+
 func PrintComponentsAsList(w io.Writer, paginated *api.Paginated[api.Component]) error {
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)
 
-	components := paginated.Results
+	componentMap := buildComponentMap(paginated.Results)
 
-	componentMap := make(map[int]*api.Component)
-	for i := range components {
-		if components[i].ID != nil {
-			componentMap[*components[i].ID] = &components[i]
-		}
-	}
-
-	for _, comp := range components {
+	for _, comp := range paginated.Results {
 		if comp.Parent == nil {
 			printComponentTree(l, &comp, componentMap, 0)
 		}
 	}
 
-	if _, err := w.Write([]byte(l.Render())); err != nil {
-		fmt.Println("Error writing to writer:", err)
+	return renderList(w, l)
+}
+
+func PrintComponentStatusTree(w io.Writer, paginated *api.Paginated[api.Component], reasons map[int][]string) error {
+	l := list.NewWriter()
+	l.SetStyle(list.StyleConnectedRounded)
+
+	componentMap := buildComponentMap(paginated.Results)
+
+	for _, comp := range paginated.Results {
+		if comp.Parent == nil {
+			printStatusTree(l, &comp, componentMap, reasons)
+		}
 	}
 
-	_, err := fmt.Fprint(w, "\n")
-	if err != nil {
-		fmt.Println("Error writing to writer:", err)
-	}
+	return renderList(w, l)
+}
 
-	return nil
+func impactIcon(impact api.ImpactType) string {
+	switch impact {
+	case api.ImpactTypeOperational:
+		return "🟢"
+	case api.ImpactTypeUnderMaintenance:
+		return "🔧"
+	case api.ImpactTypeDegradedPerformance:
+		return "🟡"
+	case api.ImpactTypePartialOutage:
+		return "🟠"
+	case api.ImpactTypeMajorOutage:
+		return "🔴"
+	default:
+		return "⚪"
+	}
 }
 
 func printComponentTree(l list.Writer, comp *api.Component, componentMap map[int]*api.Component, level int) {
-	name := comp.Name
-
-	l.AppendItem(name)
+	l.AppendItem(fmt.Sprintf("%s %s", impactIcon(comp.Impact), comp.Name))
 
 	l.Indent()
-
 	for _, child := range componentMap {
 		if child.Parent != nil && *child.Parent == *comp.ID {
 			printComponentTree(l, child, componentMap, level+1)
+		}
+	}
+	l.UnIndent()
+}
+
+func printStatusTree(l list.Writer, comp *api.Component, componentMap map[int]*api.Component, reasons map[int][]string) {
+	l.AppendItem(fmt.Sprintf("%s %s", impactIcon(comp.Impact), comp.Name))
+
+	l.Indent()
+
+	if comp.ID != nil {
+		for _, reason := range reasons[*comp.ID] {
+			l.AppendItem(reason)
+		}
+		for _, child := range componentMap {
+			if child.Parent != nil && *child.Parent == *comp.ID {
+				printStatusTree(l, child, componentMap, reasons)
+			}
 		}
 	}
 

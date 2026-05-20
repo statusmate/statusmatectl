@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -76,4 +77,34 @@ func (c *Client) CreateUpdate(update *Update[any]) (*Update[any], error) {
 	}
 
 	return &newUpdate, nil
+}
+
+func (c *Client) CreateMaintenanceUpdate(update *MaintenanceUpdate) error {
+	resp, err := c.Post("/api/update/", update)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to create maintenance update: %s\n%s", resp.Status, string(body))
+	}
+
+	return nil
+}
+
+func (c *Client) CreateIncidentUpdate(update *IncidentUpdate) error {
+	resp, err := c.Post("/api/update/", update)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to create incident update: %s\n%s", resp.Status, string(body))
+	}
+
+	return nil
 }

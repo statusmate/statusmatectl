@@ -39,3 +39,31 @@ func (c *Client) stringifyQueryParams(endpoint string, queryParams QueryParams) 
 
 	return fullURL, nil
 }
+
+func BuildAffectedComponents(affected []string, components []Component) ([]AffectedComponent, error) {
+	var affectedComponents []AffectedComponent
+
+	for _, ci := range affected {
+		parsedCI, err := ParseComponentImpact(ci)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse '%s': %w", ci, err)
+		}
+
+		var foundComponent *Component
+		for _, cmp := range components {
+			if cmp.Name == parsedCI.Component {
+				foundComponent = &cmp
+				break
+			}
+		}
+
+		if foundComponent == nil {
+			return nil, fmt.Errorf("component '%s' not found", parsedCI.Component)
+		}
+
+		ac := NewAffectedComponent(*foundComponent.ID, parsedCI.Impact)
+		affectedComponents = append(affectedComponents, *ac)
+	}
+
+	return affectedComponents, nil
+}

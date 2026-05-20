@@ -10,18 +10,28 @@ import (
 )
 
 var ListComponentsCmd = &cobra.Command{
-	Use:   "list-components",
-	Short: "Ls command",
+	Use:   "tree",
+	Short: "List components as a tree",
+	RunE:  listComponentsCmdF,
+}
+
+var ShortListComponentsCmd = &cobra.Command{
+	Use:   "c",
+	Short: "List components",
 	RunE:  listComponentsCmdF,
 }
 
 func init() {
-	ListComponentsCmd.Flags().BoolP("all", "a", false, "List all components")
-	ListComponentsCmd.Flags().String("page", "", "Status page")
-	ListComponentsCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
-	ListComponentsCmd.Flags().Bool("total", false, "Total output")
+	for _, cmd := range []*cobra.Command{ListComponentsCmd, ShortListComponentsCmd} {
+		cmd.Flags().BoolP("all", "a", false, "List all components (including disabled)")
+		cmd.Flags().String("page", "", "Status page")
+		cmd.Flags().Bool("total", false, "Print total count")
+	}
+	ListComponentsCmd.Flags().String("format", printer.PrintTableFormatList, "Format output: table|list|json")
+	ShortListComponentsCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output: table|list|json")
 
 	RootCmd.AddCommand(ListComponentsCmd)
+	LsCmd.AddCommand(ShortListComponentsCmd)
 }
 
 func listComponentsCmdF(command *cobra.Command, args []string) error {

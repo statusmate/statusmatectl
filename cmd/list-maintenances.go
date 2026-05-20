@@ -11,16 +11,25 @@ import (
 
 var ListMaintenanceCmd = &cobra.Command{
 	Use:   "list-maintenances",
-	Short: "Ls command",
+	Short: "List maintenances",
+	RunE:  listMaintenancesCmdF,
+}
+
+var ShortListMaintenanceCmd = &cobra.Command{
+	Use:   "m",
+	Short: "List maintenances",
 	RunE:  listMaintenancesCmdF,
 }
 
 func init() {
-	ListMaintenanceCmd.Flags().BoolP("all", "a", false, "List active incidents")
-	ListMaintenanceCmd.Flags().String("page", "", "Status page")
-	ListMaintenanceCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
+	for _, cmd := range []*cobra.Command{ListMaintenanceCmd, ShortListMaintenanceCmd} {
+		cmd.Flags().BoolP("all", "a", false, "List all maintenances (including completed)")
+		cmd.Flags().StringP("page", "p", "", "Status page")
+		cmd.Flags().String("format", printer.PrintTableFormatTable, "Format output: table|json")
+	}
 
 	RootCmd.AddCommand(ListMaintenanceCmd)
+	LsCmd.AddCommand(ShortListMaintenanceCmd)
 }
 
 func listMaintenancesCmdF(command *cobra.Command, args []string) error {

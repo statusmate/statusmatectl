@@ -46,7 +46,6 @@ func SaveAuthRC(domain string, authRC *AuthRC) error {
 	}
 
 	_, err = file.Write(data)
-
 	return err
 }
 

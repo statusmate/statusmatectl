@@ -37,7 +37,10 @@ func OpenFileInEditor(filename string, resolveEditor PreferredEditorResolver) er
 		return err
 	}
 
-	cmd := exec.Command(executable, resolveEditorArguments(executable, filename)...)
+	args := resolveEditorArguments(executable, filename)
+
+	cmd := exec.Command(executable, args...)
+
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -45,7 +48,7 @@ func OpenFileInEditor(filename string, resolveEditor PreferredEditorResolver) er
 	return cmd.Run()
 }
 
-func CaptureInputFromEditor(data []byte, resolveEditor PreferredEditorResolver) ([]byte, error) {
+func CaptureInputFromEditor(data []byte) ([]byte, error) {
 	file, err := os.CreateTemp(os.TempDir(), "*")
 	if err != nil {
 		return []byte{}, err
@@ -63,7 +66,7 @@ func CaptureInputFromEditor(data []byte, resolveEditor PreferredEditorResolver) 
 		return nil, err
 	}
 
-	if err = OpenFileInEditor(filename, resolveEditor); err != nil {
+	if err = OpenFileInEditor(filename, GetPreferredEditorFromEnvironment); err != nil {
 		return nil, err
 	}
 
