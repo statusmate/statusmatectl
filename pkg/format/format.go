@@ -8,6 +8,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func Marshal(v any, commentsMap *map[string]string) (string, error) {
@@ -29,6 +30,9 @@ func Marshal(v any, commentsMap *map[string]string) (string, error) {
 		fieldValue := val.Field(i)
 
 		tag := field.Tag.Get("format")
+		if tag == "" {
+			continue
+		}
 
 		if commentsMap != nil {
 			comment, ok := (*commentsMap)[tag]
@@ -58,6 +62,16 @@ func Marshal(v any, commentsMap *map[string]string) (string, error) {
 					}
 				}
 			}
+
+		case reflect.Struct:
+			if fieldValue.Type() == reflect.TypeOf(time.Time{}) {
+				t := fieldValue.Interface().(time.Time)
+				formatted := t.Format(time.RFC3339)
+				if _, err := fmt.Fprintf(writer, "%s\n", formatted); err != nil {
+					return "", err
+				}
+			}
+
 		case reflect.String:
 			if _, err := fmt.Fprintf(writer, "%s\n", fieldValue.String()); err != nil {
 				return "", err
@@ -153,9 +167,11 @@ func setFieldValue(val reflect.Value, fieldName, value string) {
 		switch field.Kind() {
 		case reflect.Slice:
 			if field.Type().Elem().Kind() == reflect.String {
-				lines := strings.Split(value, "\n")
-				for _, line := range lines {
-					field.Set(reflect.Append(field, reflect.ValueOf(line)))
+				field.Set(reflect.MakeSlice(field.Type(), 0, 0))
+				for _, line := range strings.Split(value, "\n") {
+					if line = strings.TrimSpace(line); line != "" {
+						field.Set(reflect.Append(field, reflect.ValueOf(line)))
+					}
 				}
 			}
 		case reflect.String:

@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -16,6 +17,22 @@ const (
 	IncidentStatusResolved      IncidentStatusType = "incident_resolved"
 	IncidentStatusNotice        IncidentStatusType = "notice"
 )
+
+var CommentsMap = map[string]string{
+	"name": "Название инцидента",
+	"desc": "Описание инцидента",
+	"status": `Available statuses:
+- incident_investigating
+- incident_identified
+- incident_monitoring
+- incident_resolved`,
+	"affected": `Impacts:
+- o, op - operational
+- u, um - under maintenance
+- d, dp - degraded performance
+- p, po - partial outage
+- m, mo - major outage`,
+}
 
 func IncidentStatusList() []IncidentStatusType {
 	return []IncidentStatusType{
@@ -36,31 +53,68 @@ func IncidentActiveStatusList() []IncidentStatusType {
 }
 
 type Incident struct {
+	ID           *int                `json:"id,omitempty"`
 	UUID         *string             `json:"uuid,omitempty" tab:"UUID"`
 	AbsoluteURL  *string             `json:"absolute_url,omitempty" tab:"URL"`
 	Title        string              `json:"title" tab:"Title"`
 	Status       IncidentStatusType  `json:"status" tab:"Status"`
-	ID           *int                `json:"id,omitempty"`
 	Components   []AffectedComponent `json:"components"`
+	Notify       bool                `json:"notify"`
 	CreatedAt    *time.Time          `json:"created_at,omitempty"`
 	CreatedBy    *int                `json:"created_by,omitempty"`
 	UpdatedAt    *time.Time          `json:"updated_at,omitempty"`
 	LastUpdateAt *time.Time          `json:"last_update_at,omitempty"`
 	Description  string              `json:"description"`
-	EndAt        time.Time           `json:"end_at"`
-	Logs         []Log               `json:"logs"`
-	Notify       bool                `json:"notify"`
-	Updates      []IncidentUpdate    `json:"updates"`
-	StartAt      *time.Time          `json:"start_at"`
+	EndAt        *time.Time          `json:"end_at,omitempty"`
+	Logs         []Log               `json:"logs,omitempty"`
+	Updates      []IncidentUpdate    `json:"updates,omitempty"`
+	StartAt      time.Time           `json:"start_at"`
 	StatusPage   int                 `json:"status_page"`
 	PrivateNote  string              `json:"private_note"`
 	ShowOnTop    bool                `json:"show_on_top"`
 	AffectUptime bool                `json:"affect_uptime"`
 }
 
-func NewIncident(statusPage *StatusPage) (*Incident, error) {
-	startAt := time.Now()
+type CreateIncidentPayload struct {
+	StartAt      time.Time
+	Title        string    `format:"title"`
+	Description  string    `format:"description"`
+	Status       string    `format:"status"`
+	Components   []string  `format:"components"`
+	Notify       bool      `format:"notify"`
+	ShowOnTop    bool      `format:"show_on_top"`
+	AffectUptime bool      `format:"affect_uptime"`
+	PrivateNote  string    `format:"private_note"`
+	StatusPage   int
+}
 
+var CreateIncidentPayloadFieldDescriptions = map[string]string{
+	"title":       "Название инцидента",
+	"description": "Описание инцидента",
+	"status": `Возможные статусы:
+- incident_investigating
+- incident_identified
+- incident_monitoring
+- incident_resolved`,
+	"components": `Указываются в формате: [Impact] [Имя компонента]
+Возможные значения Impact:
+- o, op  — operational
+- u, um  — under maintenance
+- d, dp  — degraded performance
+- p, po  — partial outage
+- m, mo  — major outage
+
+Примеры:
+p Web
+m API`,
+	"private_note":  "Приватное примечание, не отображается публично",
+	"start_at":      "Время инцидента",
+	"notify":        "Отправлять ли уведомление пользователям",
+	"show_on_top":   "Отображать ли инцидент выше других",
+	"affect_uptime": "Влияет ли инцидент на аптайм компонента",
+}
+
+func NewIncident(statusPage *StatusPage) *Incident {
 	return &Incident{
 		StatusPage:   statusPage.ID,
 		Status:       IncidentStatusInvestigation,
@@ -69,13 +123,53 @@ func NewIncident(statusPage *StatusPage) (*Incident, error) {
 		Description:  "",
 		PrivateNote:  "",
 		Notify:       true,
-		StartAt:      &startAt,
+		StartAt:      time.Now(),
 		ShowOnTop:    true,
 		AffectUptime: true,
-	}, nil
+	}
 }
 
-func (c *Client) CreateIncident(incident *Incident) (*Incident, error) {
+func NewCreateIncidentPayload(statusPage *StatusPage) *CreateIncidentPayload {
+	return &CreateIncidentPayload{
+		StatusPage:   statusPage.ID,
+		Status:       string(IncidentStatusInvestigation),
+		Components:   []string{},
+		Title:        "",
+		Description:  "",
+		PrivateNote:  "",
+		Notify:       true,
+		ShowOnTop:    true,
+		AffectUptime: true,
+		StartAt:      time.Now(),
+	}
+}
+
+func (c *Client) CreateIncident(input *CreateIncidentPayload) (*Incident, error) {
+	components, err := c.GetPaginatedComponents(
+		NewAllPaginatedRequest(PaginatedRequestFilter{"status_page": input.StatusPage}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	affectedComponents, err := BuildAffectedComponents(input.Components, components.Results)
+	if err != nil {
+		return nil, err
+	}
+
+	incident := &Incident{
+		StatusPage:   input.StatusPage,
+		StartAt:      input.StartAt,
+		Status:       IncidentStatusType(input.Status),
+		Title:        input.Title,
+		Description:  input.Description,
+		Notify:       input.Notify,
+		ShowOnTop:    input.ShowOnTop,
+		AffectUptime: input.AffectUptime,
+		PrivateNote:  input.PrivateNote,
+		Components:   affectedComponents,
+	}
+
 	resp, err := c.Post("/api/incident/", incident)
 	if err != nil {
 		return nil, err
@@ -83,7 +177,8 @@ func (c *Client) CreateIncident(incident *Incident) (*Incident, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, errors.New("failed to create incident: status " + resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to create incident: %s\n%s", resp.Status, string(body))
 	}
 
 	var newIncident Incident
