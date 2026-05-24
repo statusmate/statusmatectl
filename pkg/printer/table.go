@@ -43,15 +43,17 @@ func PrintAsTable[T any](writer io.Writer, paginated *api.Paginated[T], config *
 		for _, i := range fieldIndexes {
 			fieldVal := val.Field(i)
 
-			if fieldVal.Kind() == reflect.Pointer && !fieldVal.IsNil() {
+			if fieldVal.Kind() == reflect.Pointer {
+				if fieldVal.IsNil() {
+					fmt.Fprint(tw, "\t")
+					continue
+				}
 				fieldVal = fieldVal.Elem()
 			}
 
 			switch v := fieldVal.Interface().(type) {
 			case time.Time:
 				fmt.Fprintf(tw, "%s\t", v.Format("02 Jan 15:04"))
-			case nil:
-				fmt.Fprint(tw, "\t")
 			default:
 				fmt.Fprintf(tw, "%v\t", fieldVal)
 			}

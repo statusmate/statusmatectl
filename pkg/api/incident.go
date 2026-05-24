@@ -52,6 +52,22 @@ func IncidentActiveStatusList() []IncidentStatusType {
 	}
 }
 
+var incidentStatusChain = []IncidentStatusType{
+	IncidentStatusInvestigation,
+	IncidentStatusIdentified,
+	IncidentStatusMonitoring,
+	IncidentStatusResolved,
+}
+
+func NextIncidentStatus(current IncidentStatusType) (IncidentStatusType, error) {
+	for i, s := range incidentStatusChain {
+		if s == current && i+1 < len(incidentStatusChain) {
+			return incidentStatusChain[i+1], nil
+		}
+	}
+	return "", fmt.Errorf("no next status for %q", current)
+}
+
 type Incident struct {
 	ID           *int                `json:"id,omitempty"`
 	UUID         *string             `json:"uuid,omitempty" tab:"UUID"`
@@ -63,12 +79,12 @@ type Incident struct {
 	CreatedAt    *time.Time          `json:"created_at,omitempty"`
 	CreatedBy    *int                `json:"created_by,omitempty"`
 	UpdatedAt    *time.Time          `json:"updated_at,omitempty"`
-	LastUpdateAt *time.Time          `json:"last_update_at,omitempty"`
+	StartAt      time.Time           `json:"start_at" tab:"Start"`
+	LastUpdateAt *time.Time          `json:"last_update_at,omitempty" tab:"Last Update"`
 	Description  string              `json:"description"`
 	EndAt        *time.Time          `json:"end_at,omitempty"`
 	Logs         []Log               `json:"logs,omitempty"`
 	Updates      []IncidentUpdate    `json:"updates,omitempty"`
-	StartAt      time.Time           `json:"start_at"`
 	StatusPage   int                 `json:"status_page"`
 	PrivateNote  string              `json:"private_note"`
 	ShowOnTop    bool                `json:"show_on_top"`

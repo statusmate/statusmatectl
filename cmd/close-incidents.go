@@ -27,6 +27,91 @@ func init() {
 	RootCmd.AddCommand(CloseIncidentsCmd)
 }
 
+func closeIncidentCmdF(command *cobra.Command, args []string) error {
+	client, err := InitClientCommandContextCobra(command)
+	if err != nil {
+		return err
+	}
+
+	message, _ := command.Flags().GetString("message")
+	yes, _ := command.Flags().GetBool("yes")
+	dry, _ := command.Flags().GetBool("dry")
+	notify, _ := command.Flags().GetBool("notify")
+
+	var inc *api.Incident
+
+	if len(args) == 1 {
+		incident, err := client.GetIncidentByUUID(args[0])
+		if err != nil {
+			return err
+		}
+		inc = incident
+	} else {
+		statusPage, err := GetStatusPage(client, command)
+		if err != nil {
+			return err
+		}
+
+		incidents, err := client.GetPaginatedIncidents(
+			api.NewAllPaginatedRequest(api.PaginatedRequestFilter{
+				"status_page": statusPage.ID,
+				"status":      api.IncidentActiveStatusList(),
+			}),
+		)
+		if err != nil {
+			return err
+		}
+
+		if incidents.Count == 0 {
+			fmt.Println("No active incidents found.")
+			return nil
+		}
+
+		inc, err = pickIncident(incidents.Results)
+		if err != nil {
+			return err
+		}
+	}
+
+	uuid := ""
+	if inc.UUID != nil {
+		uuid = *inc.UUID
+	}
+	fmt.Printf("  • [%s] %s (%s)\n", string(inc.Status), inc.Title, uuid)
+
+	if dry {
+		fmt.Println("\nDry run: no incidents were resolved.")
+		return nil
+	}
+
+	if !yes {
+		prompt := promptui.Prompt{
+			Label:     "Resolve this incident?",
+			IsConfirm: true,
+		}
+		if _, err := prompt.Run(); err != nil {
+			fmt.Println("Canceled.")
+			return nil
+		}
+	}
+
+	update := &api.IncidentUpdate{
+		Incident:    inc.ID,
+		Status:      api.IncidentStatusResolved,
+		Description: message,
+		Notify:      notify,
+		At:          time.Now(),
+		Components:  []api.AffectedComponent{},
+	}
+
+	if err := client.CreateIncidentUpdate(update); err != nil {
+		return fmt.Errorf("failed to resolve incident: %w", err)
+	}
+
+	fmt.Printf("  ✓ resolved: %s (%s)\n", inc.Title, uuid)
+	return nil
+}
+
 func closeIncidentsCmdF(command *cobra.Command, args []string) error {
 	client, err := InitClientCommandContextCobra(command)
 	if err != nil {
