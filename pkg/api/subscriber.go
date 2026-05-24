@@ -83,16 +83,17 @@ func (c *Client) DeleteSubscriber(uuid string) error {
 	return nil
 }
 
-func (c *Client) ResendVerification(uuid string) error {
-	resp, err := c.Post(fmt.Sprintf("/api/subscriber/%s/resend_verification/", uuid), nil)
+func (c *Client) VerifySubscriber(uuid string) error {
+	payload := map[string]any{"confirmed": true}
+	resp, err := c.Patch(fmt.Sprintf("/api/subscriber/%s/", uuid), payload)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to resend verification: %s\n%s", resp.Status, string(body))
+		return fmt.Errorf("failed to verify subscriber: %s\n%s", resp.Status, string(body))
 	}
 
 	return nil

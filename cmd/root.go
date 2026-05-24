@@ -25,6 +25,7 @@ func init() {
 	}
 	RootCmd.PersistentFlags().String("server", defaultServer, "Server api url (env: ST4_SERVER)")
 	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "Show detailed information")
+	RootCmd.PersistentFlags().BoolP("pick", "P", false, "Interactively select status page")
 }
 
 func checkForRootUser() {

@@ -185,6 +185,35 @@ func (c *Client) CreateMaintenance(input *CreateMaintenancePayload) (*Maintenanc
 	return &m, nil
 }
 
+func (c *Client) GetMaintenanceByUUID(uuid string) (*Maintenance, error) {
+	resp, err := c.Get(fmt.Sprintf("/api/maintenance/%s/", uuid), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("maintenance %s: %s", uuid, resp.Status)
+	}
+	var m Maintenance
+	if err := parseResponseBody(resp, &m); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func (c *Client) GetMaintenanceByID(id int) (*Maintenance, error) {
+	result, err := c.GetPaginatedMaintenance(NewAllPaginatedRequest(PaginatedRequestFilter{"id": id}))
+	if err != nil {
+		return nil, err
+	}
+	for i := range result.Results {
+		if result.Results[i].ID != nil && *result.Results[i].ID == id {
+			return &result.Results[i], nil
+		}
+	}
+	return nil, fmt.Errorf("maintenance id=%d not found", id)
+}
+
 func (c *Client) GetPaginatedMaintenance(payload PaginatedRequest) (*Paginated[Maintenance], error) {
 	queryParams := ConvertToQueryParams(payload)
 

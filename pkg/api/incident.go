@@ -55,7 +55,7 @@ func IncidentActiveStatusList() []IncidentStatusType {
 type Incident struct {
 	ID           *int                `json:"id,omitempty"`
 	UUID         *string             `json:"uuid,omitempty" tab:"UUID"`
-	AbsoluteURL  *string             `json:"absolute_url,omitempty" tab:"URL"`
+	AbsoluteURL  *string             `json:"absolute_url,omitempty"`
 	Title        string              `json:"title" tab:"Title"`
 	Status       IncidentStatusType  `json:"status" tab:"Status"`
 	Components   []AffectedComponent `json:"components"`
@@ -188,6 +188,64 @@ func (c *Client) CreateIncident(input *CreateIncidentPayload) (*Incident, error)
 	}
 
 	return &newIncident, nil
+}
+
+type PatchIncidentPayload struct {
+	Title        *string             `json:"title,omitempty"`
+	PrivateNote  *string             `json:"private_note,omitempty"`
+	Notify       *bool               `json:"notify,omitempty"`
+	ShowOnTop    *bool               `json:"show_on_top,omitempty"`
+	AffectUptime *bool               `json:"affect_uptime,omitempty"`
+	Components   []AffectedComponent `json:"components,omitempty"`
+	EndAt        *time.Time          `json:"end_at,omitempty"`
+}
+
+func (c *Client) PatchIncident(uuid string, payload *PatchIncidentPayload) (*Incident, error) {
+	resp, err := c.Patch(fmt.Sprintf("/api/incident/%s/", uuid), payload)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to update incident: %s\n%s", resp.Status, string(body))
+	}
+
+	var incident Incident
+	if err := parseResponseBody(resp, &incident); err != nil {
+		return nil, err
+	}
+	return &incident, nil
+}
+
+func (c *Client) GetIncidentByUUID(uuid string) (*Incident, error) {
+	resp, err := c.Get(fmt.Sprintf("/api/incident/%s/", uuid), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("incident %s: %s", uuid, resp.Status)
+	}
+	var inc Incident
+	if err := parseResponseBody(resp, &inc); err != nil {
+		return nil, err
+	}
+	return &inc, nil
+}
+
+func (c *Client) GetIncidentByID(id int) (*Incident, error) {
+	result, err := c.GetPaginatedIncidents(NewAllPaginatedRequest(PaginatedRequestFilter{"id": id}))
+	if err != nil {
+		return nil, err
+	}
+	for i := range result.Results {
+		if result.Results[i].ID != nil && *result.Results[i].ID == id {
+			return &result.Results[i], nil
+		}
+	}
+	return nil, fmt.Errorf("incident id=%d not found", id)
 }
 
 func (c *Client) GetPaginatedIncidents(payload PaginatedRequest) (*Paginated[Incident], error) {

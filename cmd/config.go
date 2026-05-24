@@ -33,10 +33,31 @@ var ConfigShowCmd = &cobra.Command{
 	RunE:  configShowCmdF,
 }
 
+var ConfigCurrentPageCmd = &cobra.Command{
+	Use:   "current-page",
+	Short: "Show current default status page",
+	RunE:  configCurrentPageCmdF,
+}
+
+var UseTeamCmd = &cobra.Command{
+	Use:   "use-team",
+	Short: "Set default team",
+	RunE:  useTeamCmdF,
+}
+
+var ConfigCurrentTeamCmd = &cobra.Command{
+	Use:   "current-team",
+	Short: "Show current default team",
+	RunE:  configCurrentTeamCmdF,
+}
+
 func init() {
 	ConfigCmd.AddCommand(UseStatusPageCmd)
 	ConfigCmd.AddCommand(ConfigPathCmd)
 	ConfigCmd.AddCommand(ConfigShowCmd)
+	ConfigCmd.AddCommand(ConfigCurrentPageCmd)
+	ConfigCmd.AddCommand(UseTeamCmd)
+	ConfigCmd.AddCommand(ConfigCurrentTeamCmd)
 	RootCmd.AddCommand(ConfigCmd)
 }
 
@@ -75,6 +96,23 @@ func configShowCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Println(string(data))
+	return nil
+}
+
+func configCurrentPageCmdF(command *cobra.Command, args []string) error {
+	server, err := command.Flags().GetString("server")
+	if err != nil {
+		return err
+	}
+	authRC, err := LoadAuthRC(server)
+	if err != nil {
+		return err
+	}
+	if authRC.DefaultStatusPage == "" {
+		fmt.Println("no default status page set")
+		return nil
+	}
+	fmt.Println(authRC.DefaultStatusPage)
 	return nil
 }
 
@@ -129,5 +167,67 @@ func useStatusPageCmdF(command *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Default status page set to %s\n", slug)
+	return nil
+}
+
+func useTeamCmdF(command *cobra.Command, args []string) error {
+	client, err := InitClientCommandContextCobra(command)
+	if err != nil {
+		return err
+	}
+
+	teams, err := client.GetPaginatedTeams(api.NewAllPaginatedRequest(nil))
+	if err != nil {
+		return err
+	}
+
+	if len(teams.Results) == 0 {
+		return fmt.Errorf("no teams found")
+	}
+
+	items := make([]string, len(teams.Results))
+	for i, t := range teams.Results {
+		items[i] = fmt.Sprintf("%d  %s", t.ID, t.Name)
+	}
+
+	prompt := promptui.Select{
+		Label: "Select team",
+		Items: items,
+	}
+
+	idx, _, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+
+	selected := teams.Results[idx]
+
+	server, _ := command.Flags().GetString("server")
+	authRC, err := LoadAuthRC(server)
+	if err != nil {
+		return err
+	}
+
+	authRC.DefaultTeam = selected.ID
+
+	if err := SaveAuthRC(server, authRC); err != nil {
+		return err
+	}
+
+	fmt.Printf("Default team set to %d (%s)\n", selected.ID, selected.Name)
+	return nil
+}
+
+func configCurrentTeamCmdF(command *cobra.Command, args []string) error {
+	server, _ := command.Flags().GetString("server")
+	authRC, err := LoadAuthRC(server)
+	if err != nil {
+		return err
+	}
+	if authRC.DefaultTeam == 0 {
+		fmt.Println("no default team set")
+		return nil
+	}
+	fmt.Println(authRC.DefaultTeam)
 	return nil
 }

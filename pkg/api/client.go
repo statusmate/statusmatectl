@@ -10,12 +10,10 @@ import (
 )
 
 type Client struct {
-	BaseURL     string
-	Token       string
-	StatusPage  string
-	ReleasePage string
-	http        *http.Client
-	logger      *slog.Logger
+	BaseURL string
+	AuthRC  *AuthRC
+	http    *http.Client
+	logger  *slog.Logger
 }
 
 type QueryParams = map[string]any
@@ -36,20 +34,15 @@ func NewClient(baseURL string, logger *slog.Logger) *Client {
 }
 
 func (c *Client) SetAuthToken(token string) {
-	c.Token = token
-}
-
-func (c *Client) SetStatusPage(statusPage string) {
-	c.StatusPage = statusPage
-}
-
-func (c *Client) SetReleasePage(releasePage string) {
-	c.ReleasePage = releasePage
+	if c.AuthRC == nil {
+		c.AuthRC = &AuthRC{}
+	}
+	c.AuthRC.Token = token
 }
 
 func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
-	if c.Token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Token %s", c.Token))
+	if c.AuthRC != nil && c.AuthRC.Token != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Token %s", c.AuthRC.Token))
 	}
 	req.Header.Set("Content-Type", "application/json")
 	return c.http.Do(req)

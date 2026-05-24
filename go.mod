@@ -17,5 +17,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/tj/go-naturaldate v1.3.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 )

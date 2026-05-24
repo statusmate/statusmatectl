@@ -43,7 +43,7 @@ var DeleteSubscriberCmd = &cobra.Command{
 
 var VerifySubscriberCmd = &cobra.Command{
 	Use:   "verify <uuid>",
-	Short: "Resend verification email to a subscriber",
+	Short: "Mark a subscriber as verified",
 	Args:  cobra.ExactArgs(1),
 	RunE:  verifySubscriberCmdF,
 }
@@ -164,10 +164,10 @@ func verifySubscriberCmdF(command *cobra.Command, args []string) error {
 
 	uuid := args[0]
 
-	if err := client.ResendVerification(uuid); err != nil {
+	if err := client.VerifySubscriber(uuid); err != nil {
 		return err
 	}
 
-	fmt.Printf("Verification email sent to subscriber %s.\n", uuid)
+	fmt.Printf("Subscriber %s marked as verified.\n", uuid)
 	return nil
 }

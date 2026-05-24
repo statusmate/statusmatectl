@@ -1,6 +1,11 @@
 package api
 
-import "time"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+)
 
 type LogData struct {
 	Incident    IncidentLogData    `json:"incident"`
@@ -36,17 +41,35 @@ const (
 type LogEventsEnum string
 
 type Log struct {
-	ID         int           `json:"id"`
-	Event      LogEventsEnum `json:"event"`
-	Actor      Actor         `json:"actor"`
-	Data       LogData       `json:"data"`
-	DataBefore LogData       `json:"data_before"`
-	UUID       string        `json:"uuid"`
-	CreatedAt  time.Time     `json:"created_at"`
-	UpdatedAt  time.Time     `json:"updated_at"`
+	ID          int           `json:"id"`
+	Event       LogEventsEnum `json:"event"`
+	Actor       string        `json:"actor"`
+	Data        LogData       `json:"data"`
+	DataBefore  LogData       `json:"data_before"`
+	UUID        string        `json:"uuid"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	Incident    *int          `json:"incident"`
+	Maintenance *int          `json:"maintenance"`
 }
 
-type Actor struct {
-	Name string `json:"name"`
-	Type string `json:"type"` // "user" или "system"
+func (c *Client) GetPaginatedLogs(payload PaginatedRequest) (*Paginated[Log], error) {
+	queryParams := ConvertToQueryParams(payload)
+
+	resp, err := c.Get("/api/logs/", queryParams)
+	if err != nil {
+		return nil, errors.New("failed to perform GET request: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to retrieve logs: status " + resp.Status)
+	}
+
+	var result Paginated[Log]
+	if err := parseResponseBody(resp, &result); err != nil {
+		return nil, fmt.Errorf("error parsing response body: %v", err)
+	}
+
+	return &result, nil
 }

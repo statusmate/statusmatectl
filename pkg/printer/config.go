@@ -5,14 +5,15 @@ import "fmt"
 type PrintTableFormatType = string
 
 const (
-	PrintTableFormatJSON  PrintTableFormatType = "json"
-	PrintTableFormatTable PrintTableFormatType = "table"
-	PrintTableFormatList  PrintTableFormatType = "list"
+	PrintTableFormatJSON     PrintTableFormatType = "json"
+	PrintTableFormatTable    PrintTableFormatType = "table"
+	PrintTableFormatList     PrintTableFormatType = "list"
+	PrintTableFormatTimeline PrintTableFormatType = "timeline"
 )
 
 func ValidatePrintTableFormat(format string) error {
 	switch format {
-	case PrintTableFormatJSON, PrintTableFormatTable, PrintTableFormatList:
+	case PrintTableFormatJSON, PrintTableFormatTable, PrintTableFormatList, PrintTableFormatTimeline:
 		return nil
 	default:
 		return fmt.Errorf("unsupported format: %s, choose 'json' or 'table'", format)

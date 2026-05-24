@@ -27,14 +27,6 @@ func Run(args []string) error {
 
 	ctx := context.Background()
 
-	ctx = context.WithValue(ctx, "authrc", "")
-	ctx = context.WithValue(ctx, "UseStatusPage", "")
-	ctx = context.WithValue(ctx, "UseReleasePage", "")
-
-	ctx.Value("Token")
-	ctx.Value("UseStatusPage")
-	ctx.Value("UseReleasePage")
-
 	return RootCmd.ExecuteContext(ctx)
 }
 

@@ -79,6 +79,38 @@ func (c *Client) CreateUpdate(update *Update[any]) (*Update[any], error) {
 	return &newUpdate, nil
 }
 
+func (c *Client) GetPaginatedUpdates(payload PaginatedRequest) (*Paginated[Update[string]], error) {
+	queryParams := ConvertToQueryParams(payload)
+
+	resp, err := c.Get("/api/update/", queryParams)
+	if err != nil {
+		return nil, errors.New("failed to perform GET request: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to retrieve updates: status " + resp.Status)
+	}
+
+	var result Paginated[Update[string]]
+	if err := parseResponseBody(resp, &result); err != nil {
+		return nil, fmt.Errorf("error parsing response body: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (c *Client) GetUpdateByUUID(uuid string) (*Update[string], error) {
+	result, err := c.GetPaginatedUpdates(NewAllPaginatedRequest(PaginatedRequestFilter{"uuid": uuid}))
+	if err != nil {
+		return nil, err
+	}
+	if len(result.Results) == 0 {
+		return nil, fmt.Errorf("update %s not found", uuid)
+	}
+	return &result.Results[0], nil
+}
+
 func (c *Client) CreateMaintenanceUpdate(update *MaintenanceUpdate) error {
 	resp, err := c.Post("/api/update/", update)
 	if err != nil {

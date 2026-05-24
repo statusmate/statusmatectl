@@ -11,13 +11,21 @@ import (
 
 var ListStatusPagesCmd = &cobra.Command{
 	Use:   "list-status-pages",
-	Short: "Ls command",
+	Short: "List status pages",
+	RunE:  listStatusPagesCmdF,
+}
+
+var ShortListStatusPagesCmd = &cobra.Command{
+	Use:   "p",
+	Short: "List status pages",
 	RunE:  listStatusPagesCmdF,
 }
 
 func init() {
 	ListStatusPagesCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
+	ShortListStatusPagesCmd.Flags().String("format", printer.PrintTableFormatTable, "Format output")
 	RootCmd.AddCommand(ListStatusPagesCmd)
+	LsCmd.AddCommand(ShortListStatusPagesCmd)
 }
 
 func listStatusPagesCmdF(command *cobra.Command, args []string) error {

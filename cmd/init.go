@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 	"github.com/statusmate/statusmatectl/pkg/api"
 )
@@ -26,9 +28,7 @@ func InitClientCommandContextCobra(command *cobra.Command) (*api.Client, error) 
 	if err != nil {
 		return nil, errors.New("need auth You need to authorize this machine using `st4 login`")
 	}
-	client.SetAuthToken(authRC.Token)
-	client.SetStatusPage(authRC.DefaultStatusPage)
-	client.SetReleasePage(authRC.DefaultReleasePage)
+	client.AuthRC = authRC
 
 	return client, nil
 }
@@ -71,17 +71,22 @@ func createLogger(server string, verbose bool) (*slog.Logger, error) {
 }
 
 func GetStatusPage(cl *api.Client, command *cobra.Command) (*api.StatusPage, error) {
+	pick, _ := command.Root().PersistentFlags().GetBool("pick")
+	if pick {
+		return pickStatusPage(cl)
+	}
+
 	slug, err := command.Flags().GetString("page")
 	if err != nil {
 		return nil, err
 	}
 
-	if slug == "" {
-		slug = cl.StatusPage
+	if slug == "" && cl.AuthRC != nil {
+		slug = cl.AuthRC.DefaultStatusPage
 	}
 
 	if slug == "" {
-		return nil, errors.New("no status page specified: use --page or set default with `st4 config use-status-page`")
+		return pickStatusPage(cl)
 	}
 
 	if IdentifyType(slug) == TypeUUID {
@@ -102,4 +107,38 @@ func getStatusPageByUUID(cl *api.Client, uuid string) (*api.StatusPage, error) {
 		}
 	}
 	return nil, errors.New("status page not found: " + uuid)
+}
+
+func pickStatusPage(cl *api.Client) (*api.StatusPage, error) {
+	pages, err := cl.GetPaginatedStatusPages(api.NewAllPaginatedRequest(api.PaginatedRequestFilter{}))
+	if err != nil {
+		return nil, err
+	}
+	if len(pages.Results) == 0 {
+		return nil, errors.New("no status pages found")
+	}
+
+	items := make([]string, len(pages.Results))
+	for i, p := range pages.Results {
+		items[i] = fmt.Sprintf("%s  %s", p.Slug, p.AbsoluteURL)
+	}
+
+	prompt := promptui.Select{
+		Label: "Select status page",
+		Items: items,
+	}
+
+	idx, _, err := prompt.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	selected := &pages.Results[idx]
+
+	if cl.AuthRC != nil {
+		cl.AuthRC.DefaultStatusPage = selected.Slug
+		_ = SaveAuthRC(cl.BaseURL, cl.AuthRC)
+	}
+
+	return selected, nil
 }

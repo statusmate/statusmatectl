@@ -80,7 +80,7 @@ type StatusPage struct {
 	Description            string                       `json:"description"`
 	Impact                 ImpactType                   `json:"impact"`
 	Team                   int                          `json:"team"`
-	TeamSlug               string                       `json:"team_slug"`
+	TeamSlug               string                       `json:"team_slug" tab:"Team"`
 	Theme                  StatusPageTheme              `json:"theme"`
 	LogoLight              *Media                       `json:"logo_light,omitempty"`
 	LogoDark               *Media                       `json:"logo_dark,omitempty"`

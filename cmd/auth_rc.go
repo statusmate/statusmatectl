@@ -10,25 +10,18 @@ import (
 	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
-type AuthRC struct {
-	API                string `json:"api"`
-	Token              string `json:"token"`
-	DefaultStatusPage  string `json:"default_status_page"`
-	DefaultReleasePage string `json:"default_release_page"`
-}
-
-func FromContext(ctx context.Context) (*AuthRC, bool) {
-	v, ok := ctx.Value("authRc").(*AuthRC)
+func FromContext(ctx context.Context) (*api.AuthRC, bool) {
+	v, ok := ctx.Value("authRc").(*api.AuthRC)
 	return v, ok
 }
 
-func NewAuthRC(auth *api.AuthResponse) *AuthRC {
-	return &AuthRC{
+func NewAuthRC(auth *api.AuthResponse) *api.AuthRC {
+	return &api.AuthRC{
 		Token: auth.Key,
 	}
 }
 
-func SaveAuthRC(domain string, authRC *AuthRC) error {
+func SaveAuthRC(domain string, authRC *api.AuthRC) error {
 	filename, err := checkDir(domain, "authrc")
 	if err != nil {
 		return err
@@ -49,7 +42,7 @@ func SaveAuthRC(domain string, authRC *AuthRC) error {
 	return err
 }
 
-func LoadAuthRC(domain string) (*AuthRC, error) {
+func LoadAuthRC(domain string) (*api.AuthRC, error) {
 	filename, err := checkDir(domain, "authrc")
 	if err != nil {
 		return nil, err
@@ -61,7 +54,7 @@ func LoadAuthRC(domain string) (*AuthRC, error) {
 	}
 	defer file.Close()
 
-	authRC := &AuthRC{}
+	authRC := &api.AuthRC{}
 
 	data, err := io.ReadAll(file)
 	if err != nil {
