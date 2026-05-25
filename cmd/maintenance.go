@@ -6,8 +6,9 @@ import (
 )
 
 var MaintenanceCmd = &cobra.Command{
-	Use:   "maintenance",
-	Short: "Manage maintenances",
+	Use:     "maintenance",
+	Aliases: []string{"mnt", "m"},
+	Short:   "Manage maintenances",
 }
 
 var maintenanceLsCmd = &cobra.Command{

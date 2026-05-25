@@ -12,7 +12,7 @@ import (
 // subscriber — корневая команда-неймспейс
 var SubscriberCmd = &cobra.Command{
 	Use:     "subscriber",
-	Aliases: []string{"sub"},
+	Aliases: []string{"sub", "subs"},
 	Short:   "Manage subscribers",
 }
 
@@ -23,7 +23,7 @@ var ListSubscribersCmd = &cobra.Command{
 }
 
 var ShortListSubscribersCmd = &cobra.Command{
-	Use:   "s",
+	Use:   "ls",
 	Short: "List subscribers",
 	RunE:  listSubscribersCmdF,
 }
@@ -68,9 +68,9 @@ func init() {
 	SubscriberCmd.AddCommand(CreateSubscriberCmd)
 	SubscriberCmd.AddCommand(DeleteSubscriberCmd)
 	SubscriberCmd.AddCommand(VerifySubscriberCmd)
+	SubscriberCmd.AddCommand(ShortListSubscribersCmd)
 
 	RootCmd.AddCommand(SubscriberCmd)
-	LsCmd.AddCommand(ShortListSubscribersCmd)
 }
 
 func listSubscribersCmdF(command *cobra.Command, args []string) error {

@@ -12,10 +12,15 @@ const envServer = "ST4_SERVER"
 var RootCmd = &cobra.Command{
 	Use:          "st4",
 	Short:        "Statusmate cli tool",
+	Version:      "dev",
 	SilenceUsage: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		checkForRootUser()
 	},
+}
+
+func SetVersion(v string) {
+	RootCmd.Version = v
 }
 
 func init() {

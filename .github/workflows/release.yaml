@@ -39,13 +39,20 @@ jobs:
           EXT=""
           [ "$GOOS" = "windows" ] && EXT=".exe"
           go build -trimpath -ldflags="-s -w -X main.version=${{ github.ref_name }}" \
-            -o st4-${{ matrix.goos }}-${{ matrix.goarch }}${EXT} .
+            -o st4${EXT} .
+          if [ "$GOOS" = "windows" ]; then
+            zip st4-${{ matrix.goos }}-${{ matrix.goarch }}.zip st4.exe
+          else
+            tar czf st4-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz st4
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: st4-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: st4-${{ matrix.goos }}-${{ matrix.goarch }}*
+          path: |
+            st4-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+            st4-${{ matrix.goos }}-${{ matrix.goarch }}.zip
 
   release:
     name: Publish release
@@ -64,3 +71,52 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+
+  update-formula:
+    name: Update Homebrew formula
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Compute checksums
+        id: shas
+        run: |
+          echo "darwin_amd64=$(sha256sum dist/st4-darwin-amd64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "darwin_arm64=$(sha256sum dist/st4-darwin-arm64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_amd64=$(sha256sum dist/st4-linux-amd64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$(sha256sum dist/st4-linux-arm64.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          repository: statusmate/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        env:
+          VERSION: ${{ github.ref_name }}
+          DARWIN_AMD64: ${{ steps.shas.outputs.darwin_amd64 }}
+          DARWIN_ARM64: ${{ steps.shas.outputs.darwin_arm64 }}
+          LINUX_AMD64: ${{ steps.shas.outputs.linux_amd64 }}
+          LINUX_ARM64: ${{ steps.shas.outputs.linux_arm64 }}
+        run: |
+          cd homebrew-tap
+          sed -i "s/  version \"[^\"]*\"/  version \"${VERSION}\"/" Formula/st4.rb
+          sed -i "/st4-darwin-amd64/{n;s/sha256 \"[^\"]*\"/sha256 \"${DARWIN_AMD64}\"/}" Formula/st4.rb
+          sed -i "/st4-darwin-arm64/{n;s/sha256 \"[^\"]*\"/sha256 \"${DARWIN_ARM64}\"/}" Formula/st4.rb
+          sed -i "/st4-linux-amd64/{n;s/sha256 \"[^\"]*\"/sha256 \"${LINUX_AMD64}\"/}" Formula/st4.rb
+          sed -i "/st4-linux-arm64/{n;s/sha256 \"[^\"]*\"/sha256 \"${LINUX_ARM64}\"/}" Formula/st4.rb
+
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/st4.rb
+          git commit -m "chore: update st4 to ${{ github.ref_name }}"
+          git push

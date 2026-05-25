@@ -7,8 +7,9 @@ import (
 )
 
 var IncidentCmd = &cobra.Command{
-	Use:   "incident",
-	Short: "Manage incidents",
+	Use:     "incident",
+	Aliases: []string{"inc", "i"},
+	Short:   "Manage incidents",
 }
 
 // incident ls
