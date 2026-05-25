@@ -172,6 +172,51 @@ func (c *Client) GetLatestIncidentUpdate(incidentID int) (*Update[string], error
 	return latest, nil
 }
 
+type CreateMaintenanceUpdatePayload struct {
+	Description string   `format:"description"`
+	Status      string   `format:"status"`
+	Components  []string `format:"components"`
+	Notify      bool     `format:"notify"`
+}
+
+var CreateMaintenanceUpdatePayloadFieldDescriptions = map[string]string{
+	"description": "Сообщение обновления",
+	"status": `Возможные статусы:
+- maintenance_not_started
+- maintenance_in_progress
+- maintenance_completed`,
+	"components": `Указываются в формате: [Impact] [Имя компонента]
+Возможные значения Impact:
+- o, op  — operational
+- u, um  — under maintenance
+- d, dp  — degraded performance
+- p, po  — partial outage
+- m, mo  — major outage
+
+Примеры:
+u Web
+u API`,
+	"notify": "Отправлять ли уведомление пользователям",
+}
+
+func (c *Client) GetLatestMaintenanceUpdate(maintenanceID int) (*Update[string], error) {
+	result, err := c.GetPaginatedUpdates(NewAllPaginatedRequest(PaginatedRequestFilter{"maintenance": maintenanceID}))
+	if err != nil {
+		return nil, err
+	}
+	if len(result.Results) == 0 {
+		return nil, nil
+	}
+	latest := &result.Results[0]
+	for i := range result.Results[1:] {
+		u := &result.Results[i+1]
+		if u.At.After(latest.At) {
+			latest = u
+		}
+	}
+	return latest, nil
+}
+
 func (c *Client) CreateIncidentUpdate(update *IncidentUpdate) error {
 	resp, err := c.Post("/api/update/", update)
 	if err != nil {

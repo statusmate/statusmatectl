@@ -27,6 +27,96 @@ func init() {
 	RootCmd.AddCommand(CloseMaintenancesCmd)
 }
 
+func closeMaintenanceCmdF(command *cobra.Command, args []string) error {
+	client, err := InitClientCommandContextCobra(command)
+	if err != nil {
+		return err
+	}
+
+	message, _ := command.Flags().GetString("message")
+	yes, _ := command.Flags().GetBool("yes")
+	dry, _ := command.Flags().GetBool("dry")
+	notify, _ := command.Flags().GetBool("notify")
+
+	var m *api.Maintenance
+
+	if len(args) == 1 {
+		maintenance, err := client.GetMaintenanceByUUID(args[0])
+		if err != nil {
+			return err
+		}
+		m = maintenance
+	} else {
+		statusPage, err := GetStatusPage(client, command)
+		if err != nil {
+			return err
+		}
+
+		maintenances, err := client.GetPaginatedMaintenance(
+			api.NewAllPaginatedRequest(api.PaginatedRequestFilter{
+				"status_page": statusPage.ID,
+				"status":      api.MaintenanceActiveStatusList(),
+			}),
+		)
+		if err != nil {
+			return err
+		}
+
+		if maintenances.Count == 0 {
+			fmt.Println("No active maintenances found.")
+			return nil
+		}
+
+		m, err = pickMaintenance(maintenances.Results)
+		if err != nil {
+			return err
+		}
+	}
+
+	uuid := ""
+	if m.UUID != nil {
+		uuid = *m.UUID
+	}
+	fmt.Printf("  • [%s] %s (%s)\n", string(m.Status), m.Title, uuid)
+
+	if dry {
+		fmt.Println("\nDry run: no maintenances were completed.")
+		return nil
+	}
+
+	if !yes {
+		prompt := promptui.Prompt{
+			Label:     "Complete this maintenance?",
+			IsConfirm: true,
+		}
+		if _, err := prompt.Run(); err != nil {
+			fmt.Println("Canceled.")
+			return nil
+		}
+	}
+
+	at := time.Now()
+	if m.EndAt != nil && m.EndAt.Before(at) {
+		at = *m.EndAt
+	}
+
+	update := &api.MaintenanceUpdate{
+		Maintenance: m.ID,
+		Status:      api.MaintenanceStatusCompleted,
+		Description: message,
+		Notify:      notify,
+		At:          at,
+		Components:  []api.AffectedComponent{},
+	}
+
+	if err := client.CreateMaintenanceUpdate(update); err != nil {
+		return fmt.Errorf("failed to complete maintenance: %w", err)
+	}
+
+	fmt.Printf("  ✓ completed: %s (%s)\n", m.Title, uuid)
+	return nil
+}
+
 func closeMaintenancesCmdF(command *cobra.Command, args []string) error {
 	client, err := InitClientCommandContextCobra(command)
 	if err != nil {

@@ -101,7 +101,7 @@ func closeIncidentCmdF(command *cobra.Command, args []string) error {
 		Description: message,
 		Notify:      notify,
 		At:          time.Now(),
-		Components:  []api.AffectedComponent{},
+		Components:  operationalComponents(inc.Components),
 	}
 
 	if err := client.CreateIncidentUpdate(update); err != nil {
@@ -183,7 +183,7 @@ func closeIncidentsCmdF(command *cobra.Command, args []string) error {
 			Description: message,
 			Notify:      notify,
 			At:          time.Now(),
-			Components:  []api.AffectedComponent{},
+			Components:  operationalComponents(inc.Components),
 		}
 
 		if err := client.CreateIncidentUpdate(update); err != nil {
@@ -202,4 +202,15 @@ func closeIncidentsCmdF(command *cobra.Command, args []string) error {
 
 	fmt.Printf("Done. %d incident(s) resolved.\n", incidents.Count)
 	return nil
+}
+
+func operationalComponents(comps []api.AffectedComponent) []api.AffectedComponent {
+	result := make([]api.AffectedComponent, len(comps))
+	for i, ac := range comps {
+		result[i] = api.AffectedComponent{
+			Component: ac.Component,
+			Impact:    api.ImpactTypeOperational,
+		}
+	}
+	return result
 }

@@ -77,7 +77,7 @@ func logCmdF(command *cobra.Command, args []string) error {
 		}
 		componentID = *comp.ID
 	} else {
-		comp, err := pickComponent(client, statusPage.ID)
+		comp, err := pickComponentByPage(client, statusPage.ID)
 		if err != nil {
 			return err
 		}
@@ -177,7 +177,7 @@ func logCmdF(command *cobra.Command, args []string) error {
 	return printer.PrintLogs(os.Stdout, entries, cfg)
 }
 
-func pickComponent(client *api.Client, statusPageID int) (*api.Component, error) {
+func pickComponentByPage(client *api.Client, statusPageID int) (*api.Component, error) {
 	components, err := client.GetPaginatedComponents(
 		api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"status_page": statusPageID}),
 	)

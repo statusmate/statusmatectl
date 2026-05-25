@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/statusmate/statusmatectl/pkg/api"
 	"github.com/statusmate/statusmatectl/pkg/editor"
@@ -36,6 +37,7 @@ func init() {
 	CreateMaintenanceCmd.Flags().BoolP("pick-components", "C", false, "Interactively pick components")
 	CreateMaintenanceCmd.Flags().BoolP("yes", "y", false, "Skip confirmation prompt")
 	CreateMaintenanceCmd.Flags().Bool("dry", false, "Dry run: validate and show without creating")
+	CreateMaintenanceCmd.Flags().StringP("file", "f", "", "Path to maintenance template file (created with touch-maintenance)")
 
 	RootCmd.AddCommand(CreateMaintenanceCmd)
 }
@@ -64,20 +66,32 @@ func createMaintenanceCmdF(command *cobra.Command, args []string) error {
 	pickComponents, _ := command.Flags().GetBool("pick-components")
 	dry, _ := command.Flags().GetBool("dry")
 	yes, _ := command.Flags().GetBool("yes")
+	filePath, _ := command.Flags().GetString("file")
 
 	payload := api.NewCreateMaintenancePayload(statusPage)
-	payload.Title = title
-	payload.Description = description
-	payload.Components = components
-	payload.Notify = notify
-	payload.AutoStart = autoStart
-	payload.AutoEnd = autoEnd
-	payload.AffectUptime = affectUptime
-	if startAt != "" {
-		payload.StartAt = startAt
-	}
-	if endAt != "" {
-		payload.EndAt = endAt
+
+	if filePath != "" {
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read file %q", filePath)
+		}
+		if err := format.Unmarshal(string(data), payload); err != nil {
+			return errors.Wrapf(err, "failed to parse file %q", filePath)
+		}
+	} else {
+		payload.Title = title
+		payload.Description = description
+		payload.Components = components
+		payload.Notify = notify
+		payload.AutoStart = autoStart
+		payload.AutoEnd = autoEnd
+		payload.AffectUptime = affectUptime
+		if startAt != "" {
+			payload.StartAt = startAt
+		}
+		if endAt != "" {
+			payload.EndAt = endAt
+		}
 	}
 
 	var availableComponents []api.Component

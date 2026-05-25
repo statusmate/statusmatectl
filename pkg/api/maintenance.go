@@ -33,6 +33,21 @@ func MaintenanceActiveStatusList() []MaintenanceStatusType {
 	}
 }
 
+var maintenanceStatusChain = []MaintenanceStatusType{
+	MaintenanceStatusNotStarted,
+	MaintenanceStatusInProgress,
+	MaintenanceStatusCompleted,
+}
+
+func NextMaintenanceStatus(current MaintenanceStatusType) (MaintenanceStatusType, error) {
+	for i, s := range maintenanceStatusChain {
+		if s == current && i+1 < len(maintenanceStatusChain) {
+			return maintenanceStatusChain[i+1], nil
+		}
+	}
+	return "", fmt.Errorf("no next status for %q", current)
+}
+
 type Maintenance struct {
 	UUID                *string               `json:"uuid" tab:"UUID"`
 	Title               string                `json:"title"  tab:"Title"`

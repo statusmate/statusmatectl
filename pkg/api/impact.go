@@ -45,6 +45,14 @@ type ComponentImpact struct {
 	Impact    ImpactType
 }
 
+func ParseImpact(s string) (ImpactType, error) {
+	impact, ok := impactMap[strings.ToLower(s)]
+	if !ok {
+		return "", fmt.Errorf("invalid impact %q (use: o/op/operational, d/dp/degraded_performance, p/po/partial_outage, m/mo/major_outage, u/um/under_maintenance)", s)
+	}
+	return impact, nil
+}
+
 func ParseComponentImpact(input string) (ComponentImpact, error) {
 	parts := strings.SplitN(input, " ", 2)
 	if len(parts) != 2 {
