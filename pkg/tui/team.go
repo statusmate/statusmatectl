@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
@@ -10,9 +11,11 @@ import (
 
 // TeamView displays team members.
 type TeamView struct {
-	app   *App
-	table *tview.Table
-	users []api.TeamUserExpanded
+	app        *App
+	table      *tview.Table
+	users      []api.TeamUserExpanded
+	displayed  []api.TeamUserExpanded
+	filterText string
 }
 
 func newTeamView(app *App) *TeamView {
@@ -47,8 +50,33 @@ func (v *TeamView) refresh() {
 	}()
 }
 
+func (v *TeamView) filter(text string) {
+	v.filterText = text
+	v.render()
+}
+
+func (v *TeamView) clearFilter() {
+	v.filterText = ""
+	v.render()
+}
+
 func (v *TeamView) render() {
-	v.table.SetTitle(fmt.Sprintf(" Team [%d] ", len(v.users)))
+	lower := strings.ToLower(v.filterText)
+	v.displayed = v.displayed[:0]
+	for _, u := range v.users {
+		if lower == "" ||
+			strings.Contains(strings.ToLower(u.User.Username), lower) ||
+			strings.Contains(strings.ToLower(u.User.Email), lower) ||
+			strings.Contains(strings.ToLower(u.Role), lower) {
+			v.displayed = append(v.displayed, u)
+		}
+	}
+
+	if lower != "" {
+		v.table.SetTitle(fmt.Sprintf(" Team [%d/%d] ", len(v.displayed), len(v.users)))
+	} else {
+		v.table.SetTitle(fmt.Sprintf(" Team [%d] ", len(v.users)))
+	}
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "ROLE", "USERNAME", "EMAIL", "ACTIVE"} {
@@ -59,7 +87,7 @@ func (v *TeamView) render() {
 			SetExpansion(1))
 	}
 
-	for i, u := range v.users {
+	for i, u := range v.displayed {
 		row := i + 1
 		active := "yes"
 		if !u.IsActive {
@@ -72,7 +100,7 @@ func (v *TeamView) render() {
 		v.table.SetCell(row, 4, tview.NewTableCell(active).SetTextColor(tcell.ColorGray))
 	}
 
-	if len(v.users) > 0 {
+	if len(v.displayed) > 0 {
 		v.table.Select(1, 0)
 	}
 }

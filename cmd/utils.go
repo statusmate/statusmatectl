@@ -1,39 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
-	"strings"
 )
-
-const (
-	statusmateDir = ".st4"
-)
-
-func sanitizeDomain(server string) string {
-	server = strings.TrimPrefix(server, "http://")
-	server = strings.TrimPrefix(server, "https://")
-
-	replacer := strings.NewReplacer("/", "_", ":", "_")
-	return replacer.Replace(server)
-}
-
-func checkDir(domain string, dest string) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("could not find home directory: %w", err)
-	}
-	filename := filepath.Join(homeDir, statusmateDir, sanitizeDomain(domain), dest)
-
-	err = os.MkdirAll(filepath.Dir(filename), 0700)
-	if err != nil {
-		return "", fmt.Errorf("could not create directory: %w", err)
-	}
-
-	return filename, nil
-}
 
 const (
 	TypeUUID    = "UUID"

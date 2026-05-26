@@ -11,25 +11,31 @@ const (
 	viewComponents  = "components"
 	viewMaintenance = "maintenance"
 	viewTeam        = "team"
+	viewServers     = "servers"
+	requestViewLogs = "request-logs"
 )
 
 // App is the main TUI application.
 type App struct {
 	tv           *tview.Application
 	pages        *tview.Pages
+	layout       *tview.Flex
 	client       *api.Client
 	statusPage   *api.StatusPage
 	version      string
 	srvInfo      *ServerInfo
 	pageSwitcher *PageSwitcher
 	navTabs      *NavTabs
-	help         *Help
+	pageActions  *PageActions
 	current      string
 	incidents    *IncidentsView
 	components   *ComponentsView
 	maintenance  *MaintenanceView
 	team         *TeamView
+	servers      *ServersView
+	logs         *RequestLogView
 	user         *api.User
+	prompt       *CommandPrompt
 }
 
 // NewApp creates and initializes the TUI application.
@@ -49,24 +55,30 @@ func (a *App) build() {
 	a.srvInfo = newServerInfo(a)
 	a.pageSwitcher = newPageSwitcher(a)
 	a.navTabs = newNavTabs(a)
-	a.help = newHelp(a)
+	a.pageActions = newPageActions(a)
 
 	a.incidents = newIncidentsView(a)
 	a.components = newComponentsView(a)
 	a.maintenance = newMaintenanceView(a)
 	a.team = newTeamView(a)
+	a.servers = newServersView(a)
+	a.logs = newRequestLogView(a)
+	a.prompt = newCommandPrompt(a)
 
 	a.pages.AddPage(viewIncidents, a.incidents.root(), true, true)
 	a.pages.AddPage(viewComponents, a.components.root(), true, false)
 	a.pages.AddPage(viewMaintenance, a.maintenance.root(), true, false)
 	a.pages.AddPage(viewTeam, a.team.root(), true, false)
+	a.pages.AddPage(viewServers, a.servers.root(), true, false)
+	a.pages.AddPage(requestViewLogs, a.logs.root(), true, false)
 
-	layout := tview.NewFlex().
+	a.layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(a.buildHeader(), 5, 0, false).
+		AddItem(a.prompt, 0, 0, false).
 		AddItem(a.pages, 0, 1, true)
 
-	a.tv.SetRoot(layout, true)
+	a.tv.SetRoot(a.layout, true)
 	a.tv.SetInputCapture(a.onGlobalKey)
 	a.switchTo(viewIncidents)
 
@@ -95,7 +107,7 @@ func (a *App) buildHeader() tview.Primitive {
 	header.AddItem(a.srvInfo, clusterInfoWidth, 1, false)
 	header.AddItem(a.pageSwitcher, pageSwitcherWidth, 1, false)
 	header.AddItem(a.navTabs, navTabsWidth, 1, false)
-	header.AddItem(a.help, 0, 1, false)
+	header.AddItem(a.pageActions, 0, 1, false)
 	return header
 }
 
@@ -103,7 +115,7 @@ func (a *App) renderHeader() {
 	a.srvInfo.render()
 	a.pageSwitcher.render()
 	a.navTabs.render()
-	a.help.render()
+	a.pageActions.render()
 }
 
 func (a *App) switchStatusPage(idx int) {
@@ -117,15 +129,27 @@ func (a *App) switchStatusPage(idx int) {
 }
 
 func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
+	if a.prompt.active {
+		return ev
+	}
+
 	name, _ := a.pages.GetFrontPage()
 	switch name {
-	case viewIncidents, viewComponents, viewMaintenance, viewTeam:
+	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, requestViewLogs:
 	default:
 		return ev
 	}
 
 	switch ev.Rune() {
+	case ':':
+		a.prompt.ActivateCommand()
+		return nil
+	case '?':
+		f, c := a.currentSearch()
+		a.prompt.ActivateSearch(f, c)
+		return nil
 	case 'q':
+		a.logs.stopTailing()
 		a.tv.Stop()
 		return nil
 	case 'i':
@@ -140,6 +164,12 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 	case 't':
 		a.switchTo(viewTeam)
 		return nil
+	case 's':
+		a.switchTo(viewServers)
+		return nil
+	case 'l':
+		a.switchTo(requestViewLogs)
+		return nil
 	case 'r':
 		a.refreshCurrent()
 		return nil
@@ -153,7 +183,28 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 	return ev
 }
 
+func (a *App) currentSearch() (func(string), func()) {
+	switch a.current {
+	case viewIncidents:
+		return a.incidents.filter, a.incidents.clearFilter
+	case viewComponents:
+		return a.components.filter, a.components.clearFilter
+	case viewMaintenance:
+		return a.maintenance.filter, a.maintenance.clearFilter
+	case viewTeam:
+		return a.team.filter, a.team.clearFilter
+	case viewServers:
+		return a.servers.filter, a.servers.clearFilter
+	case requestViewLogs:
+		return a.logs.filter, a.logs.clearFilter
+	}
+	return func(string) {}, func() {}
+}
+
 func (a *App) switchTo(name string) {
+	if a.current == requestViewLogs && name != requestViewLogs {
+		a.logs.stopTailing()
+	}
 	a.current = name
 	a.pages.SwitchToPage(name)
 	a.renderHeader()
@@ -170,7 +221,47 @@ func (a *App) refreshCurrent() {
 		a.maintenance.refresh()
 	case viewTeam:
 		a.team.refresh()
+	case viewServers:
+		a.servers.refresh()
+	case requestViewLogs:
+		a.logs.refresh()
 	}
+}
+
+func (a *App) switchServer(domain string) {
+	newClient, err := loadServerClient(domain, a.client)
+	if err != nil {
+		return
+	}
+	a.client = newClient
+	a.user = nil
+	a.statusPage = nil
+	a.pageSwitcher.pages = nil
+	a.renderHeader()
+	a.refreshCurrent()
+
+	go func() {
+		user, err := a.client.GetMe()
+		if err == nil {
+			a.user = user
+			a.tv.QueueUpdateDraw(a.renderHeader)
+		}
+	}()
+
+	go func() {
+		result, err := a.client.GetPaginatedStatusPages(api.NewAllPaginatedRequest(nil))
+		if err != nil || len(result.Results) == 0 {
+			return
+		}
+		a.tv.QueueUpdateDraw(func() {
+			a.pageSwitcher.setPages(result.Results)
+			if a.statusPage == nil && len(result.Results) > 0 {
+				a.statusPage = &result.Results[0]
+				a.renderHeader()
+				a.refreshCurrent()
+			}
+		})
+	}()
 }
 
 func (a *App) showModal(name string, p tview.Primitive, width, height int) {

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
@@ -14,6 +15,8 @@ type ComponentsView struct {
 	table      *tview.Table
 	detail     *tview.Table
 	components []api.Component
+	displayed  []api.Component
+	filterText string
 }
 
 func newComponentsView(app *App) *ComponentsView {
@@ -64,8 +67,32 @@ func (v *ComponentsView) refresh() {
 	}()
 }
 
+func (v *ComponentsView) filter(text string) {
+	v.filterText = text
+	v.render()
+}
+
+func (v *ComponentsView) clearFilter() {
+	v.filterText = ""
+	v.render()
+}
+
 func (v *ComponentsView) render() {
-	v.table.SetTitle(fmt.Sprintf(" Components [%d] ", len(v.components)))
+	lower := strings.ToLower(v.filterText)
+	v.displayed = v.displayed[:0]
+	for _, comp := range v.components {
+		if lower == "" ||
+			strings.Contains(strings.ToLower(comp.Name), lower) ||
+			strings.Contains(strings.ToLower(string(comp.Impact)), lower) {
+			v.displayed = append(v.displayed, comp)
+		}
+	}
+
+	if lower != "" {
+		v.table.SetTitle(fmt.Sprintf(" Components [%d/%d] ", len(v.displayed), len(v.components)))
+	} else {
+		v.table.SetTitle(fmt.Sprintf(" Components [%d] ", len(v.components)))
+	}
 	v.table.Clear()
 
 	for i, h := range []string{"NAME", "IMPACT", "ENABLED", "UPTIME", "UPDATED"} {
@@ -76,7 +103,7 @@ func (v *ComponentsView) render() {
 			SetExpansion(1))
 	}
 
-	for i, comp := range v.components {
+	for i, comp := range v.displayed {
 		row := i + 1
 		enabled := "yes"
 		if !comp.Enabled {
@@ -93,17 +120,17 @@ func (v *ComponentsView) render() {
 		v.table.SetCell(row, 4, tview.NewTableCell(formatAge(comp.UpdatedAt)).SetTextColor(tcell.ColorGray))
 	}
 
-	if len(v.components) > 0 {
+	if len(v.displayed) > 0 {
 		v.table.Select(1, 0)
 	}
 }
 
 func (v *ComponentsView) selected() *api.Component {
 	row, _ := v.table.GetSelection()
-	if row <= 0 || row-1 >= len(v.components) {
+	if row <= 0 || row-1 >= len(v.displayed) {
 		return nil
 	}
-	return &v.components[row-1]
+	return &v.displayed[row-1]
 }
 
 func (v *ComponentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {

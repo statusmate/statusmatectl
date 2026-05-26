@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
@@ -14,6 +15,8 @@ type MaintenanceView struct {
 	table        *tview.Table
 	detail       *tview.Table
 	maintenances []api.Maintenance
+	displayed    []api.Maintenance
+	filterText   string
 }
 
 func newMaintenanceView(app *App) *MaintenanceView {
@@ -64,8 +67,32 @@ func (v *MaintenanceView) refresh() {
 	}()
 }
 
+func (v *MaintenanceView) filter(text string) {
+	v.filterText = text
+	v.render()
+}
+
+func (v *MaintenanceView) clearFilter() {
+	v.filterText = ""
+	v.render()
+}
+
 func (v *MaintenanceView) render() {
-	v.table.SetTitle(fmt.Sprintf(" Maintenance [%d] ", len(v.maintenances)))
+	lower := strings.ToLower(v.filterText)
+	v.displayed = v.displayed[:0]
+	for _, m := range v.maintenances {
+		if lower == "" ||
+			strings.Contains(strings.ToLower(m.Title), lower) ||
+			strings.Contains(strings.ToLower(string(m.Status)), lower) {
+			v.displayed = append(v.displayed, m)
+		}
+	}
+
+	if lower != "" {
+		v.table.SetTitle(fmt.Sprintf(" Maintenance [%d/%d] ", len(v.displayed), len(v.maintenances)))
+	} else {
+		v.table.SetTitle(fmt.Sprintf(" Maintenance [%d] ", len(v.maintenances)))
+	}
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "TITLE", "STATUS", "START", "END"} {
@@ -76,7 +103,7 @@ func (v *MaintenanceView) render() {
 			SetExpansion(1))
 	}
 
-	for i, m := range v.maintenances {
+	for i, m := range v.displayed {
 		row := i + 1
 		uuid := "-"
 		if m.UUID != nil {
@@ -92,17 +119,17 @@ func (v *MaintenanceView) render() {
 		v.table.SetCell(row, 4, tview.NewTableCell(formatTimePtr(m.EndAt)).SetTextColor(tcell.ColorGray))
 	}
 
-	if len(v.maintenances) > 0 {
+	if len(v.displayed) > 0 {
 		v.table.Select(1, 0)
 	}
 }
 
 func (v *MaintenanceView) selected() *api.Maintenance {
 	row, _ := v.table.GetSelection()
-	if row <= 0 || row-1 >= len(v.maintenances) {
+	if row <= 0 || row-1 >= len(v.displayed) {
 		return nil
 	}
-	return &v.maintenances[row-1]
+	return &v.displayed[row-1]
 }
 
 func (v *MaintenanceView) onKey(ev *tcell.EventKey) *tcell.EventKey {

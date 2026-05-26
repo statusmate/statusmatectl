@@ -9,6 +9,7 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
 var (
@@ -92,8 +93,8 @@ func loginCmdF(command *cobra.Command, args []string) error {
 		}
 	}
 
-	authRC := NewAuthRC(authResponse)
-	err = SaveAuthRC(client.BaseURL, authRC)
+	authRC := api.NewAuthRC(authResponse)
+	err = api.SaveAuthRC(client.BaseURL, authRC)
 	if err != nil {
 		return fmt.Errorf("failed to save token to file: %v", err)
 	}

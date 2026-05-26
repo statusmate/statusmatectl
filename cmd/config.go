@@ -74,7 +74,7 @@ func configPathCmdF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	path, err := checkDir(server, "authrc")
+	path, err := api.CheckDir(server, "authrc")
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func configShowCmdF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	authRC, err := LoadAuthRC(server)
+	authRC, err := api.LoadAuthRC(server)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func configCurrentPageCmdF(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	authRC, err := LoadAuthRC(server)
+	authRC, err := api.LoadAuthRC(server)
 	if err != nil {
 		return err
 	}
@@ -155,14 +155,14 @@ func useStatusPageCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	authRC, err := LoadAuthRC(server)
+	authRC, err := api.LoadAuthRC(server)
 	if err != nil {
 		return err
 	}
 
 	authRC.DefaultStatusPage = slug
 
-	if err := SaveAuthRC(server, authRC); err != nil {
+	if err := api.SaveAuthRC(server, authRC); err != nil {
 		return err
 	}
 
@@ -203,14 +203,14 @@ func useTeamCmdF(command *cobra.Command, args []string) error {
 	selected := teams.Results[idx]
 
 	server, _ := command.Flags().GetString("server")
-	authRC, err := LoadAuthRC(server)
+	authRC, err := api.LoadAuthRC(server)
 	if err != nil {
 		return err
 	}
 
 	authRC.DefaultTeam = selected.ID
 
-	if err := SaveAuthRC(server, authRC); err != nil {
+	if err := api.SaveAuthRC(server, authRC); err != nil {
 		return err
 	}
 
@@ -220,7 +220,7 @@ func useTeamCmdF(command *cobra.Command, args []string) error {
 
 func configCurrentTeamCmdF(command *cobra.Command, args []string) error {
 	server, _ := command.Flags().GetString("server")
-	authRC, err := LoadAuthRC(server)
+	authRC, err := api.LoadAuthRC(server)
 	if err != nil {
 		return err
 	}

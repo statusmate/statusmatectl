@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/derailed/tcell/v2"
@@ -11,10 +12,12 @@ import (
 
 // IncidentsView displays a list of incidents and handles creating/updating them.
 type IncidentsView struct {
-	app       *App
-	table     *tview.Table
-	detail    *tview.Table
-	incidents []api.Incident
+	app        *App
+	table      *tview.Table
+	detail     *tview.Table
+	incidents  []api.Incident
+	displayed  []api.Incident
+	filterText string
 }
 
 func newIncidentsView(app *App) *IncidentsView {
@@ -66,8 +69,32 @@ func (v *IncidentsView) refresh() {
 	}()
 }
 
+func (v *IncidentsView) filter(text string) {
+	v.filterText = text
+	v.render()
+}
+
+func (v *IncidentsView) clearFilter() {
+	v.filterText = ""
+	v.render()
+}
+
 func (v *IncidentsView) render() {
-	v.table.SetTitle(fmt.Sprintf(" Incidents [%d] ", len(v.incidents)))
+	lower := strings.ToLower(v.filterText)
+	v.displayed = v.displayed[:0]
+	for _, inc := range v.incidents {
+		if lower == "" ||
+			strings.Contains(strings.ToLower(inc.Title), lower) ||
+			strings.Contains(strings.ToLower(string(inc.Status)), lower) {
+			v.displayed = append(v.displayed, inc)
+		}
+	}
+
+	if lower != "" {
+		v.table.SetTitle(fmt.Sprintf(" Incidents [%d/%d] ", len(v.displayed), len(v.incidents)))
+	} else {
+		v.table.SetTitle(fmt.Sprintf(" Incidents [%d] ", len(v.incidents)))
+	}
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "TITLE", "STATUS", "CREATED"} {
@@ -78,7 +105,7 @@ func (v *IncidentsView) render() {
 			SetExpansion(1))
 	}
 
-	for i, inc := range v.incidents {
+	for i, inc := range v.displayed {
 		row := i + 1
 		uuid := "-"
 		if inc.UUID != nil {
@@ -93,17 +120,17 @@ func (v *IncidentsView) render() {
 		v.table.SetCell(row, 3, tview.NewTableCell(formatAge(inc.CreatedAt)).SetTextColor(tcell.ColorGray))
 	}
 
-	if len(v.incidents) > 0 {
+	if len(v.displayed) > 0 {
 		v.table.Select(1, 0)
 	}
 }
 
 func (v *IncidentsView) selected() *api.Incident {
 	row, _ := v.table.GetSelection()
-	if row <= 0 || row-1 >= len(v.incidents) {
+	if row <= 0 || row-1 >= len(v.displayed) {
 		return nil
 	}
-	return &v.incidents[row-1]
+	return &v.displayed[row-1]
 }
 
 func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {

@@ -80,7 +80,7 @@ func loadStatusPageForTUI(client *api.Client) (*api.StatusPage, error) {
 	selected := &pages.Results[idx]
 	if client.AuthRC != nil {
 		client.AuthRC.DefaultStatusPage = selected.Slug
-		_ = SaveAuthRC(client.BaseURL, client.AuthRC)
+		_ = api.SaveAuthRC(client.BaseURL, client.AuthRC)
 	}
 	return selected, nil
 }
