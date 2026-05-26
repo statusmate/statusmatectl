@@ -66,11 +66,29 @@ func PrintTeamInvites(w io.Writer, paginated *api.Paginated[api.TeamInvite], con
 	return tw.Flush()
 }
 
-func PrintTeamUsers(w io.Writer, paginated *api.Paginated[api.TeamUser], config *PrintTableConfig) error {
+func PrintTeamUsers(w io.Writer, paginated *api.Paginated[api.TeamUserExpanded], config *PrintTableConfig) error {
 	if config.Format == PrintTableFormatJSON {
 		return PrintAsJSON(w, paginated, config)
 	}
-	return PrintAsTable(w, paginated, config)
+
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+
+	if config.PrintBlockTotal {
+		fmt.Fprintf(tw, "total %d\n\n", paginated.Count)
+	}
+
+	if len(paginated.Results) == 0 {
+		fmt.Fprintln(w, "No results to display.")
+		return nil
+	}
+
+	fmt.Fprintln(tw, "Username\tEmail\tRole\tActive\tCreated\t")
+	for _, u := range paginated.Results {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%v\t%s\t\n",
+			u.User.Username, u.User.Email, u.Role, u.IsActive, formatTime(u.CreatedAt))
+	}
+
+	return tw.Flush()
 }
 
 func PrintSummaryTeamInvite(w io.Writer, inv *api.TeamInvite) error {

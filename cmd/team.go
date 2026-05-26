@@ -248,7 +248,7 @@ func listTeamMembersCmdF(command *cobra.Command, args []string) error {
 		filters["role"] = role
 	}
 
-	data, err := client.GetPaginatedTeamUsers(api.NewAllPaginatedRequest(filters))
+	data, err := client.GetPaginatedTeamUsersExpanded(api.NewAllPaginatedRequest(filters))
 	if err != nil {
 		return err
 	}

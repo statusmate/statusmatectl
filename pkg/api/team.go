@@ -18,6 +18,22 @@ type TeamUser struct {
 	CreatedAt *time.Time `json:"created_at,omitempty" tab:"Created"`
 }
 
+type TeamUserNested struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
+type TeamUserExpanded struct {
+	ID        int            `json:"id"`
+	UUID      string         `json:"uuid"`
+	Role      string         `json:"role"`
+	User      TeamUserNested `json:"user"`
+	Team      int            `json:"team"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt *time.Time     `json:"created_at,omitempty"`
+}
+
 type Team struct {
 	ID                int        `json:"id"`
 	UUID              string     `json:"uuid"`
@@ -126,6 +142,28 @@ func (c *Client) GetPaginatedTeamUsers(payload PaginatedRequest) (*Paginated[Tea
 	}
 
 	var result Paginated[TeamUser]
+	if err := parseResponseBody(resp, &result); err != nil {
+		return nil, fmt.Errorf("error parsing response body: %v", err)
+	}
+
+	return &result, nil
+}
+
+func (c *Client) GetPaginatedTeamUsersExpanded(payload PaginatedRequest) (*Paginated[TeamUserExpanded], error) {
+	queryParams := ConvertToQueryParams(payload)
+	queryParams["expand"] = "user"
+
+	resp, err := c.Get("/api/team_user/", queryParams)
+	if err != nil {
+		return nil, errors.New("failed to perform GET request: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("failed to retrieve team users: status " + resp.Status)
+	}
+
+	var result Paginated[TeamUserExpanded]
 	if err := parseResponseBody(resp, &result); err != nil {
 		return nil, fmt.Errorf("error parsing response body: %v", err)
 	}
