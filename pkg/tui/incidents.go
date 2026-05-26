@@ -91,7 +91,7 @@ func (v *IncidentsView) render() {
 	}
 
 	if lower != "" {
-		v.table.SetTitle(fmt.Sprintf(" Incidents [%d/%d] ", len(v.displayed), len(v.incidents)))
+		v.table.SetTitle(fmt.Sprintf(" Incidents [%d/%d] [green::]</%s>[-:-:-] ", len(v.displayed), len(v.incidents), lower))
 	} else {
 		v.table.SetTitle(fmt.Sprintf(" Incidents [%d] ", len(v.incidents)))
 	}

@@ -152,7 +152,7 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 	case ':':
 		a.prompt.ActivateCommand()
 		return nil
-	case '?':
+	case '/':
 		f, c := a.currentSearch()
 		a.prompt.ActivateSearch(f, c)
 		return nil

@@ -2,6 +2,8 @@ package tui
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -379,10 +381,21 @@ func (v *RequestLogView) showDetail(e *httpLogEntry) {
 	}
 
 	if e.response != "" {
+		headers, body, _ := strings.Cut(e.response, "\r\n\r\n")
+		body = strings.TrimSpace(body)
+		if body != "" && json.Valid([]byte(body)) {
+			var buf bytes.Buffer
+			json.Indent(&buf, []byte(body), "", "  ")
+			body = buf.String()
+		}
+		respText := headers
+		if body != "" {
+			respText += "\r\n\r\n" + body
+		}
 		fmt.Fprintf(
 			v.detail,
 			"[yellow::b]── RESPONSE ──[-:-:-]\n[white::]%s[-:-:-]\n",
-			tview.Escape(e.response),
+			tview.Escape(respText),
 		)
 	}
 
