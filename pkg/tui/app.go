@@ -27,6 +27,7 @@ type App struct {
 	pageSwitcher *PageSwitcher
 	navTabs      *NavTabs
 	pageActions  *PageActions
+	header       *tview.Flex
 	current      string
 	incidents    *IncidentsView
 	components   *ComponentsView
@@ -102,19 +103,26 @@ func (a *App) build() {
 }
 
 func (a *App) buildHeader() tview.Primitive {
-	header := tview.NewFlex()
-	header.SetDirection(tview.FlexColumn)
-	header.AddItem(a.srvInfo, clusterInfoWidth, 1, false)
-	header.AddItem(a.pageSwitcher, pageSwitcherWidth, 1, false)
-	header.AddItem(a.navTabs, navTabsWidth, 1, false)
-	header.AddItem(a.pageActions, 0, 1, false)
-	return header
+	a.header = tview.NewFlex()
+	a.header.SetDirection(tview.FlexColumn)
+	a.header.AddItem(a.srvInfo, clusterInfoWidth, 1, false)
+	a.header.AddItem(a.pageSwitcher, pageSwitcherWidth, 1, false)
+	a.header.AddItem(a.navTabs, navTabsWidth, 1, false)
+	a.header.AddItem(a.pageActions, 0, 1, false)
+	return a.header
 }
 
 func (a *App) renderHeader() {
 	a.srvInfo.render()
-	a.pageSwitcher.render()
-	a.navTabs.render()
+	if a.current == requestViewLogs {
+		a.header.ResizeItem(a.pageSwitcher, 0, 0)
+		a.header.ResizeItem(a.navTabs, 0, 0)
+	} else {
+		a.header.ResizeItem(a.pageSwitcher, pageSwitcherWidth, 1)
+		a.header.ResizeItem(a.navTabs, navTabsWidth, 1)
+		a.pageSwitcher.render()
+		a.navTabs.render()
+	}
 	a.pageActions.render()
 }
 
@@ -172,6 +180,10 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case 'r':
 		a.refreshCurrent()
+		return nil
+	}
+
+	if ev = a.pageActions.handleKey(ev); ev == nil {
 		return nil
 	}
 

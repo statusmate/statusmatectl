@@ -286,10 +286,11 @@ func (v *RequestLogView) render() {
 
 	domain := sanitizeDomain(strings.TrimPrefix(
 		strings.TrimPrefix(v.app.client.BaseURL, "https://"), "http://"))
+	presetLabel := logPresetList[v.preset].label
 	if lower != "" {
-		v.table.SetTitle(fmt.Sprintf(" HTTP Logs: %s [%d/%d] ", domain, len(v.displayed), len(v.entries)))
+		v.table.SetTitle(fmt.Sprintf(" HTTP Logs: (%s) [green::][%s][-:-:-] [%d/%d] ", domain, presetLabel, len(v.displayed), len(v.entries)))
 	} else {
-		v.table.SetTitle(fmt.Sprintf(" HTTP Logs: %s [%d] ", domain, len(v.entries)))
+		v.table.SetTitle(fmt.Sprintf(" HTTP Logs: (%s) [green::][%s][-:-:-] ", domain, presetLabel))
 	}
 	v.table.Clear()
 
@@ -338,11 +339,6 @@ func (v *RequestLogView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 		if e := v.selected(); e != nil {
 			v.showDetail(e)
 		}
-		return nil
-	}
-	r := ev.Rune()
-	if r >= '0' && r <= '5' {
-		v.setPreset(int(r - '0'))
 		return nil
 	}
 	return ev

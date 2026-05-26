@@ -273,6 +273,20 @@ func (p *PageActions) setPresetCell(row, colBase int, key, label string, active 
 	p.SetCell(row, colBase+1, lc)
 }
 
+// handleKey processes page-specific key events before the global handler.
+// Returns nil if the event was consumed, or the original event to pass through.
+func (p *PageActions) handleKey(ev *tcell.EventKey) *tcell.EventKey {
+	switch p.app.current {
+	case requestViewLogs:
+		r := ev.Rune()
+		if r >= '0' && r <= '5' {
+			p.app.logs.setPreset(int(r - '0'))
+			return nil
+		}
+	}
+	return ev
+}
+
 // setGlobalRow renders two global shortcuts side-by-side on the given row.
 func (p *PageActions) setGlobalRow(row int, key1, label1, key2, label2 string) {
 	p.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("<%s>", key1)).
