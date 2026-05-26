@@ -76,6 +76,22 @@ func loginCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	if authResponse.TwoFactorRequired {
+		fmt.Println("A verification code has been sent to your email.")
+		prompt := promptui.Prompt{
+			Label:    "Enter 6-digit code",
+			Validate: validatePinCode,
+		}
+		pinCode, err := prompt.Run()
+		if err != nil {
+			return fmt.Errorf("error entering pin code: %v", err)
+		}
+		user, authResponse, err = client.TwoFactorVerify(pinCode, authResponse.TwoFactorToken)
+		if err != nil {
+			return err
+		}
+	}
+
 	authRC := NewAuthRC(authResponse)
 	err = SaveAuthRC(client.BaseURL, authRC)
 	if err != nil {
@@ -96,6 +112,18 @@ func validateEmail(input string) error {
 func validatePassword(input string) error {
 	if len(input) < 6 {
 		return errors.New("password must be at least 6 characters long")
+	}
+	return nil
+}
+
+func validatePinCode(input string) error {
+	if len(input) != 6 {
+		return errors.New("code must be exactly 6 digits")
+	}
+	for _, ch := range input {
+		if ch < '0' || ch > '9' {
+			return errors.New("code must contain only digits")
+		}
 	}
 	return nil
 }

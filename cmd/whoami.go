@@ -25,6 +25,7 @@ func whoamiCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Printf("Server:   %s\n", client.BaseURL)
 	fmt.Printf("Username: %s\n", user.Username)
 
 	return nil
