@@ -13,6 +13,7 @@ import (
 type IncidentsView struct {
 	app       *App
 	table     *tview.Table
+	detail    *tview.Table
 	incidents []api.Incident
 }
 
@@ -26,8 +27,25 @@ func newIncidentsView(app *App) *IncidentsView {
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorNavy).
 			Foreground(tcell.ColorWhite))
-
+	v.table.SetBorder(true)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
+	v.table.SetTitle(" Incidents ")
+	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+
+	v.detail = tview.NewTable().SetSelectable(true, false)
+	v.detail.SetBorder(true)
+	v.detail.SetTitle(" Incident Detail ")
+	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		if ev.Key() == tcell.KeyEscape {
+			app.pages.SwitchToPage(viewIncidents)
+			app.tv.SetFocus(v.table)
+		}
+		return ev
+	})
+	app.pages.AddPage("incDetail", v.detail, true, false)
+
 	return v
 }
 
@@ -49,6 +67,7 @@ func (v *IncidentsView) refresh() {
 }
 
 func (v *IncidentsView) render() {
+	v.table.SetTitle(fmt.Sprintf(" Incidents [%d] ", len(v.incidents)))
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "TITLE", "STATUS", "CREATED"} {
@@ -109,44 +128,49 @@ func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *IncidentsView) showDetail(inc *api.Incident) {
-	tv := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetWrap(true)
+	v.detail.Clear()
 
 	uuid := "-"
 	if inc.UUID != nil {
 		uuid = *inc.UUID
 	}
 
-	text := fmt.Sprintf("[yellow::b]%s[-:-:-]\n\n", inc.Title)
-	text += fmt.Sprintf("[blue]Status:[-]  %s\n", formatIncidentStatus(inc.Status))
-	text += fmt.Sprintf("[blue]UUID:[-]    %s\n", uuid)
+	row := 0
+	v.detail.SetCell(row, 0, detailSectionCell(inc.Title))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Status"))
+	v.detail.SetCell(row, 1, tview.NewTableCell(formatIncidentStatus(inc.Status)).
+		SetTextColor(incidentStatusColor(inc.Status)).SetExpansion(1))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
+	v.detail.SetCell(row, 1, detailValueCell(uuid))
+	row++
 	if inc.CreatedAt != nil {
-		text += fmt.Sprintf("[blue]Created:[-] %s\n", inc.CreatedAt.Format("2006-01-02 15:04"))
+		v.detail.SetCell(row, 0, detailLabelCell("Created"))
+		v.detail.SetCell(row, 1, detailValueCell(inc.CreatedAt.Format("2006-01-02 15:04")))
+		row++
 	}
 	if inc.Description != "" {
-		text += fmt.Sprintf("\n[blue]Description:[-]\n%s\n", inc.Description)
+		v.detail.SetCell(row, 0, detailLabelCell("Description"))
+		v.detail.SetCell(row, 1, detailValueCell(inc.Description))
+		row++
 	}
 	if len(inc.Updates) > 0 {
-		text += "\n[yellow]Updates:[-]\n"
+		row++
+		v.detail.SetCell(row, 0, detailSectionCell("Updates"))
+		row++
 		for _, u := range inc.Updates {
-			text += fmt.Sprintf("  [gray]%s[-]  [aqua]%s[-]\n  %s\n\n",
-				u.At.Format("2006-01-02 15:04"),
-				formatIncidentStatus(u.Status),
-				u.Description)
+			v.detail.SetCell(row, 0, tview.NewTableCell(u.At.Format("2006-01-02 15:04")).
+				SetTextColor(tcell.ColorGray))
+			v.detail.SetCell(row, 1, tview.NewTableCell(formatIncidentStatus(u.Status)).
+				SetTextColor(incidentStatusColor(u.Status)))
+			v.detail.SetCell(row, 2, detailValueCell(u.Description))
+			row++
 		}
 	}
 
-	tv.SetText(text)
-	tv.SetBorder(true).SetTitle(" Incident Detail ").SetTitleAlign(tview.AlignLeft)
-	tv.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
-			v.app.closeModal("incDetail")
-		}
-		return ev
-	})
-	v.app.showModal("incDetail", tv, 80, 30)
+	v.app.pages.SwitchToPage("incDetail")
+	v.app.tv.SetFocus(v.detail)
 }
 
 func (v *IncidentsView) showCreateForm() {
@@ -179,7 +203,7 @@ func (v *IncidentsView) showCreateForm() {
 	form.AddButton("Cancel", func() {
 		v.app.closeModal("incCreate")
 	})
-	form.SetBorder(true).SetTitle(" New Incident ").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle(" New Incident ").SetTitleAlign(tview.AlignCenter)
 	form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			v.app.closeModal("incCreate")
@@ -227,7 +251,7 @@ func (v *IncidentsView) showUpdateForm(inc *api.Incident) {
 	})
 	form.SetBorder(true).
 		SetTitle(fmt.Sprintf(" Update: %s ", truncate(inc.Title, 30))).
-		SetTitleAlign(tview.AlignLeft)
+		SetTitleAlign(tview.AlignCenter)
 	form.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			v.app.closeModal("incUpdate")

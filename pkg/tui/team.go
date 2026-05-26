@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"fmt"
+
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
 	"github.com/statusmate/statusmatectl/pkg/api"
@@ -24,6 +26,9 @@ func newTeamView(app *App) *TeamView {
 			Background(tcell.ColorNavy).
 			Foreground(tcell.ColorWhite))
 
+	v.table.SetBorder(true)
+	v.table.SetTitle(" Team ")
+	v.table.SetTitleAlign(tview.AlignCenter)
 	return v
 }
 
@@ -43,6 +48,7 @@ func (v *TeamView) refresh() {
 }
 
 func (v *TeamView) render() {
+	v.table.SetTitle(fmt.Sprintf(" Team [%d] ", len(v.users)))
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "ROLE", "USERNAME", "EMAIL", "ACTIVE"} {

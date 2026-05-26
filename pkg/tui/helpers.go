@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/derailed/tcell/v2"
+	"github.com/derailed/tview"
 	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
@@ -91,6 +92,25 @@ func maintenanceStatusColor(s api.MaintenanceStatusType) tcell.Color {
 	default:
 		return tcell.ColorWhite
 	}
+}
+
+func detailLabelCell(t string) *tview.TableCell {
+	return tview.NewTableCell(t + ":").
+		SetTextColor(tcell.ColorBlue).
+		SetAlign(tview.AlignLeft)
+}
+
+func detailValueCell(t string) *tview.TableCell {
+	return tview.NewTableCell(t).
+		SetTextColor(tcell.ColorWhite).
+		SetExpansion(1)
+}
+
+func detailSectionCell(t string) *tview.TableCell {
+	return tview.NewTableCell(t).
+		SetTextColor(tcell.ColorYellow).
+		SetAttributes(tcell.AttrBold).
+		SetExpansion(2)
 }
 
 func impactColor(s api.ImpactType) tcell.Color {

@@ -12,6 +12,7 @@ import (
 type ComponentsView struct {
 	app        *App
 	table      *tview.Table
+	detail     *tview.Table
 	components []api.Component
 }
 
@@ -25,8 +26,24 @@ func newComponentsView(app *App) *ComponentsView {
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorNavy).
 			Foreground(tcell.ColorWhite))
-
+	v.table.SetBorder(true)
+	v.table.SetTitle(" Components ")
+	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+
+	v.detail = tview.NewTable().SetSelectable(true, false)
+	v.detail.SetBorder(true)
+	v.detail.SetTitle(" Component Detail ")
+	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		if ev.Key() == tcell.KeyEscape {
+			app.pages.SwitchToPage(viewComponents)
+			app.tv.SetFocus(v.table)
+		}
+		return ev
+	})
+	app.pages.AddPage("compDetail", v.detail, true, false)
+
 	return v
 }
 
@@ -48,6 +65,7 @@ func (v *ComponentsView) refresh() {
 }
 
 func (v *ComponentsView) render() {
+	v.table.SetTitle(fmt.Sprintf(" Components [%d] ", len(v.components)))
 	v.table.Clear()
 
 	for i, h := range []string{"NAME", "IMPACT", "ENABLED", "UPTIME", "UPDATED"} {
@@ -99,32 +117,42 @@ func (v *ComponentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *ComponentsView) showDetail(comp *api.Component) {
-	tv := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetWrap(true)
+	v.detail.Clear()
 
 	uuid := "-"
 	if comp.UUID != nil {
 		uuid = *comp.UUID
 	}
-
-	text := fmt.Sprintf("[yellow::b]%s[-:-:-]\n\n", comp.Name)
-	text += fmt.Sprintf("[blue]UUID:[-]    %s\n", uuid)
-	text += fmt.Sprintf("[blue]Impact:[-]  %s\n", comp.Impact)
-	text += fmt.Sprintf("[blue]Enabled:[-] %v\n", comp.Enabled)
-	text += fmt.Sprintf("[blue]Uptime:[-]  %s\n", comp.Uptime)
-	if comp.Description != "" {
-		text += fmt.Sprintf("\n[blue]Description:[-]\n%s\n", comp.Description)
+	enabled := "yes"
+	if !comp.Enabled {
+		enabled = "no"
+	}
+	uptime := comp.Uptime
+	if uptime == "" {
+		uptime = "-"
 	}
 
-	tv.SetText(text)
-	tv.SetBorder(true).SetTitle(" Component Detail ").SetTitleAlign(tview.AlignLeft)
-	tv.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
-			v.app.closeModal("compDetail")
-		}
-		return ev
-	})
-	v.app.showModal("compDetail", tv, 70, 20)
+	row := 0
+	v.detail.SetCell(row, 0, detailSectionCell(comp.Name))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
+	v.detail.SetCell(row, 1, detailValueCell(uuid))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Impact"))
+	v.detail.SetCell(row, 1, tview.NewTableCell(string(comp.Impact)).
+		SetTextColor(impactColor(comp.Impact)).SetExpansion(1))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Enabled"))
+	v.detail.SetCell(row, 1, detailValueCell(enabled))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Uptime"))
+	v.detail.SetCell(row, 1, detailValueCell(uptime))
+	row++
+	if comp.Description != "" {
+		v.detail.SetCell(row, 0, detailLabelCell("Description"))
+		v.detail.SetCell(row, 1, detailValueCell(comp.Description))
+	}
+
+	v.app.pages.SwitchToPage("compDetail")
+	v.app.tv.SetFocus(v.detail)
 }

@@ -32,7 +32,7 @@ func rootRunTUI(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	return tui.NewApp(client, sp).Run()
+	return tui.NewApp(client, sp, RootCmd.Version).Run()
 }
 
 func runTUI(cmd *cobra.Command, _ []string) error {
@@ -44,7 +44,7 @@ func runTUI(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	return tui.NewApp(client, sp).Run()
+	return tui.NewApp(client, sp, RootCmd.Version).Run()
 }
 
 // loadStatusPageForTUI resolves the status page for the TUI without requiring

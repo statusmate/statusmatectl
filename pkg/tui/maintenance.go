@@ -12,6 +12,7 @@ import (
 type MaintenanceView struct {
 	app          *App
 	table        *tview.Table
+	detail       *tview.Table
 	maintenances []api.Maintenance
 }
 
@@ -25,8 +26,24 @@ func newMaintenanceView(app *App) *MaintenanceView {
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorNavy).
 			Foreground(tcell.ColorWhite))
-
+	v.table.SetBorder(true)
+	v.table.SetTitle(" Maintenance ")
+	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+
+	v.detail = tview.NewTable().SetSelectable(true, false)
+	v.detail.SetBorder(true)
+	v.detail.SetTitle(" Maintenance Detail ")
+	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		if ev.Key() == tcell.KeyEscape {
+			app.pages.SwitchToPage(viewMaintenance)
+			app.tv.SetFocus(v.table)
+		}
+		return ev
+	})
+	app.pages.AddPage("maintDetail", v.detail, true, false)
+
 	return v
 }
 
@@ -48,6 +65,7 @@ func (v *MaintenanceView) refresh() {
 }
 
 func (v *MaintenanceView) render() {
+	v.table.SetTitle(fmt.Sprintf(" Maintenance [%d] ", len(v.maintenances)))
 	v.table.Clear()
 
 	for i, h := range []string{"UUID", "TITLE", "STATUS", "START", "END"} {
@@ -98,41 +116,48 @@ func (v *MaintenanceView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *MaintenanceView) showDetail(m *api.Maintenance) {
-	tv := tview.NewTextView().
-		SetDynamicColors(true).
-		SetScrollable(true).
-		SetWrap(true)
+	v.detail.Clear()
 
 	uuid := "-"
 	if m.UUID != nil {
 		uuid = *m.UUID
 	}
 
-	text := fmt.Sprintf("[yellow::b]%s[-:-:-]\n\n", m.Title)
-	text += fmt.Sprintf("[blue]Status:[-]  %s\n", formatMaintenanceStatus(m.Status))
-	text += fmt.Sprintf("[blue]UUID:[-]    %s\n", uuid)
-	text += fmt.Sprintf("[blue]Start:[-]   %s\n", formatTimePtr(m.StartAt))
-	text += fmt.Sprintf("[blue]End:[-]     %s\n", formatTimePtr(m.EndAt))
+	row := 0
+	v.detail.SetCell(row, 0, detailSectionCell(m.Title))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Status"))
+	v.detail.SetCell(row, 1, tview.NewTableCell(formatMaintenanceStatus(m.Status)).
+		SetTextColor(maintenanceStatusColor(m.Status)).SetExpansion(1))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
+	v.detail.SetCell(row, 1, detailValueCell(uuid))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("Start"))
+	v.detail.SetCell(row, 1, detailValueCell(formatTimePtr(m.StartAt)))
+	row++
+	v.detail.SetCell(row, 0, detailLabelCell("End"))
+	v.detail.SetCell(row, 1, detailValueCell(formatTimePtr(m.EndAt)))
+	row++
 	if m.Description != "" {
-		text += fmt.Sprintf("\n[blue]Description:[-]\n%s\n", m.Description)
+		v.detail.SetCell(row, 0, detailLabelCell("Description"))
+		v.detail.SetCell(row, 1, detailValueCell(m.Description))
+		row++
 	}
 	if len(m.Updates) > 0 {
-		text += "\n[yellow]Updates:[-]\n"
+		row++
+		v.detail.SetCell(row, 0, detailSectionCell("Updates"))
+		row++
 		for _, u := range m.Updates {
-			text += fmt.Sprintf("  [gray]%s[-]  [aqua]%s[-]\n  %s\n\n",
-				u.At.Format("2006-01-02 15:04"),
-				formatMaintenanceStatus(u.Status),
-				u.Description)
+			v.detail.SetCell(row, 0, tview.NewTableCell(u.At.Format("2006-01-02 15:04")).
+				SetTextColor(tcell.ColorGray))
+			v.detail.SetCell(row, 1, tview.NewTableCell(formatMaintenanceStatus(u.Status)).
+				SetTextColor(maintenanceStatusColor(u.Status)))
+			v.detail.SetCell(row, 2, detailValueCell(u.Description))
+			row++
 		}
 	}
 
-	tv.SetText(text)
-	tv.SetBorder(true).SetTitle(" Maintenance Detail ").SetTitleAlign(tview.AlignLeft)
-	tv.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
-			v.app.closeModal("maintDetail")
-		}
-		return ev
-	})
-	v.app.showModal("maintDetail", tv, 80, 30)
+	v.app.pages.SwitchToPage("maintDetail")
+	v.app.tv.SetFocus(v.detail)
 }
