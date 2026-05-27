@@ -11,12 +11,13 @@ import (
 
 // ComponentsView displays a list of components.
 type ComponentsView struct {
-	app        *App
-	table      *tview.Table
-	detail     *tview.Table
-	components []api.Component
-	displayed  []api.Component
-	filterText string
+	app          *App
+	table        *tview.Table
+	detail       *tview.Table
+	components   []api.Component
+	displayed    []api.Component
+	filterText   string
+	pendingNavID *int
 }
 
 func newComponentsView(app *App) *ComponentsView {
@@ -122,6 +123,30 @@ func (v *ComponentsView) render() {
 
 	if len(v.displayed) > 0 {
 		v.table.Select(1, 0)
+	}
+	v.doNavigate()
+}
+
+func (v *ComponentsView) navigateTo(id int) {
+	for i, comp := range v.displayed {
+		if comp.ID != nil && *comp.ID == id {
+			v.table.Select(i+1, 0)
+			return
+		}
+	}
+	v.pendingNavID = &id
+}
+
+func (v *ComponentsView) doNavigate() {
+	if v.pendingNavID == nil {
+		return
+	}
+	for i, comp := range v.displayed {
+		if comp.ID != nil && *comp.ID == *v.pendingNavID {
+			v.table.Select(i+1, 0)
+			v.pendingNavID = nil
+			return
+		}
 	}
 }
 

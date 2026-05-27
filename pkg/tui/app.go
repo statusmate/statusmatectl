@@ -276,28 +276,6 @@ func (a *App) switchServer(domain string) {
 	}()
 }
 
-func (a *App) showModal(name string, p tview.Primitive, width, height int) {
-	centered := centeredBox(p, width, height)
-	a.pages.AddPage(name, centered, true, true)
-	a.tv.SetFocus(p)
-}
-
-func (a *App) closeModal(name string) {
-	a.pages.RemovePage(name)
-	a.tv.SetFocus(a.pages)
-}
-
-func centeredBox(p tview.Primitive, width, height int) tview.Primitive {
-	return tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(p, height, 0, true).
-			AddItem(nil, 0, 1, false),
-			width, 0, true).
-		AddItem(nil, 0, 1, false)
-}
-
 // Run starts the TUI event loop.
 func (a *App) Run() error {
 	return a.tv.Run()
