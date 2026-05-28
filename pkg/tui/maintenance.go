@@ -40,7 +40,7 @@ func newMaintenanceView(app *App) *MaintenanceView {
 	v.detail.SetTitleAlign(tview.AlignCenter)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
-			app.pages.SwitchToPage(viewMaintenance)
+			app.popPage()
 			app.tv.SetFocus(v.table)
 		}
 		return ev
@@ -185,6 +185,6 @@ func (v *MaintenanceView) showDetail(m *api.Maintenance) {
 		}
 	}
 
-	v.app.pages.SwitchToPage("maintDetail")
+	v.app.pushPage("maintDetail")
 	v.app.tv.SetFocus(v.detail)
 }

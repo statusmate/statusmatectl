@@ -79,7 +79,7 @@ func newRequestLogView(app *App) *RequestLogView {
 	v.detail.SetWrap(false)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
-			app.pages.SwitchToPage(requestViewLogs)
+			app.popPage()
 			app.tv.SetFocus(v.table)
 		}
 		return ev
@@ -400,7 +400,7 @@ func (v *RequestLogView) showDetail(e *httpLogEntry) {
 	}
 
 	v.detail.ScrollToBeginning()
-	v.app.pages.SwitchToPage("logDetail")
+	v.app.pushPage("logDetail")
 	v.app.tv.SetFocus(v.detail)
 }
 

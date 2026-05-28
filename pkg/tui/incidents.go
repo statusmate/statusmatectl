@@ -8,8 +8,6 @@ import (
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
 	"github.com/statusmate/statusmatectl/pkg/api"
-	"github.com/statusmate/statusmatectl/pkg/editor"
-	"github.com/statusmate/statusmatectl/pkg/format"
 )
 
 // IncidentsView displays a list of incidents and handles creating/updating them.
@@ -17,6 +15,7 @@ type IncidentsView struct {
 	app                *App
 	table              *tview.Table
 	detail             *tview.Table
+	deleteModal        *tview.Modal
 	detailCompIDs      []int
 	detailCompRowStart int
 	incidents          []api.Incident
@@ -47,7 +46,7 @@ func newIncidentsView(app *App) *IncidentsView {
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
 		case tcell.KeyEscape:
-			app.pages.SwitchToPage(viewIncidents)
+			app.popPage()
 			app.tv.SetFocus(v.table)
 			return nil
 		case tcell.KeyEnter:
@@ -64,6 +63,21 @@ func newIncidentsView(app *App) *IncidentsView {
 		return ev
 	})
 	app.pages.AddPage("incDetail", v.detail, true, false)
+
+	v.deleteModal = tview.NewModal().
+		SetText("Delete this incident?").
+		AddButtons([]string{"Delete", "Cancel"}).
+		SetDoneFunc(func(idx int, label string) {
+			app.popPage()
+			app.tv.SetFocus(v.table)
+			if label == "Delete" {
+				v.confirmDelete()
+			}
+		})
+
+	v.deleteModal.SetBackgroundColor(tcell.ColorBlack)
+	v.deleteModal.SetBorder(true)
+	app.pages.AddPage("incDelete", v.deleteModal, true, false)
 
 	return v
 }
@@ -166,8 +180,34 @@ func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 			v.showUpdateForm(inc)
 		}
 		return nil
+	case 'd':
+		if inc := v.selected(); inc != nil {
+			v.showDeleteConfirm(inc)
+		}
+		return nil
 	}
 	return ev
+}
+
+func (v *IncidentsView) showDeleteConfirm(inc *api.Incident) {
+	title := inc.Title
+	v.deleteModal.SetText(fmt.Sprintf("Delete incident:\n[white::b]%s[-:-:-]?", title))
+	v.app.pushPage("incDelete")
+	v.app.tv.SetFocus(v.deleteModal)
+}
+
+func (v *IncidentsView) confirmDelete() {
+	inc := v.selected()
+	if inc == nil || inc.UUID == nil {
+		return
+	}
+	uuid := *inc.UUID
+	go func() {
+		if err := v.app.client.DeleteIncident(uuid); err != nil {
+			return
+		}
+		v.app.tv.QueueUpdateDraw(v.refresh)
+	}()
 }
 
 func (v *IncidentsView) showDetail(inc *api.Incident) {
@@ -294,165 +334,6 @@ func (v *IncidentsView) showDetail(inc *api.Incident) {
 		}()
 	}
 
-	v.app.pages.SwitchToPage("incDetail")
+	v.app.pushPage("incDetail")
 	v.app.tv.SetFocus(v.detail)
 }
-
-func (v *IncidentsView) showCreateForm() {
-	if v.app.statusPage == nil {
-		return
-	}
-
-	go func() {
-		comps, err := v.app.client.GetPaginatedComponents(
-			api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"status_page": v.app.statusPage.ID}),
-		)
-		if err != nil {
-			return
-		}
-
-		payload := api.NewCreateIncidentPayload(v.app.statusPage)
-
-		data, err := format.Marshal(payload, &api.CreateIncidentPayloadFieldDescriptions)
-		if err != nil {
-			return
-		}
-		data += buildComponentsFooter(comps.Results)
-
-		v.app.tv.Suspend(func() {
-			output, err := editor.CaptureInputFromEditor([]byte(data))
-			if err != nil {
-				return
-			}
-			if err := format.Unmarshal(string(output), payload); err != nil {
-				return
-			}
-			if strings.TrimSpace(payload.Title) == "" {
-				return
-			}
-			v.app.client.CreateIncident(payload) //nolint:errcheck
-		})
-
-		v.refresh()
-	}()
-}
-
-func (v *IncidentsView) showUpdateForm(inc *api.Incident) {
-	if inc.ID == nil {
-		return
-	}
-
-	go func() {
-		filter := api.PaginatedRequestFilter{}
-		if v.app.statusPage != nil {
-			filter["status_page"] = v.app.statusPage.ID
-		}
-		comps, err := v.app.client.GetPaginatedComponents(api.NewAllPaginatedRequest(filter))
-		if err != nil {
-			return
-		}
-		availableComponents := comps.Results
-
-		latestUpdate, _ := v.app.client.GetLatestIncidentUpdate(*inc.ID)
-
-		var sourceComponents []api.AffectedComponent
-		if latestUpdate != nil {
-			sourceComponents = latestUpdate.Components
-		} else {
-			sourceComponents = inc.Components
-		}
-
-		payload := &api.CreateIncidentUpdatePayload{
-			Status:     string(inc.Status),
-			Components: affectedComponentsToStrings(sourceComponents, availableComponents),
-			Notify:     true,
-		}
-
-		data, err := format.Marshal(payload, &api.CreateIncidentUpdatePayloadFieldDescriptions)
-		if err != nil {
-			return
-		}
-		data += buildComponentsFooter(availableComponents)
-
-		v.app.tv.Suspend(func() {
-			output, err := editor.CaptureInputFromEditor([]byte(data))
-			if err != nil {
-				return
-			}
-			if err := format.Unmarshal(string(output), payload); err != nil {
-				return
-			}
-			if strings.TrimSpace(payload.Description) == "" {
-				return
-			}
-			affectedComps, err := api.BuildAffectedComponents(payload.Components, availableComponents)
-			if err != nil {
-				return
-			}
-			update := &api.IncidentUpdate{
-				Incident:    inc.ID,
-				Status:      api.IncidentStatusType(payload.Status),
-				Description: payload.Description,
-				Notify:      payload.Notify,
-				At:          time.Now(),
-				Components:  affectedComps,
-			}
-			v.app.client.CreateIncidentUpdate(update) //nolint:errcheck
-		})
-
-		v.refresh()
-	}()
-}
-
-func buildComponentsFooter(components []api.Component) string {
-	if len(components) == 0 {
-		return ""
-	}
-
-	children := make(map[int][]api.Component)
-	var roots []api.Component
-	for _, c := range components {
-		if c.Parent == nil {
-			roots = append(roots, c)
-		} else {
-			children[*c.Parent] = append(children[*c.Parent], c)
-		}
-	}
-
-	var sb strings.Builder
-	sb.WriteString("\n# Доступные компоненты:\n")
-
-	var write func(comps []api.Component, indent string)
-	write = func(comps []api.Component, indent string) {
-		for _, c := range comps {
-			sb.WriteString(fmt.Sprintf("#%s- %s\n", indent, c.Name))
-			if c.ID != nil {
-				if kids, ok := children[*c.ID]; ok {
-					write(kids, indent+"  ")
-				}
-			}
-		}
-	}
-	write(roots, " ")
-
-	return sb.String()
-}
-
-func affectedComponentsToStrings(comps []api.AffectedComponent, available []api.Component) []string {
-	result := make([]string, 0, len(comps))
-	for _, ac := range comps {
-		var name string
-		for _, c := range available {
-			if c.ID != nil && *c.ID == ac.Component {
-				name = c.Name
-				break
-			}
-		}
-		if name == "" {
-			continue
-		}
-		result = append(result, fmt.Sprintf("%s %s", ac.Impact, name))
-	}
-	return result
-}
-

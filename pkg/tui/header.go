@@ -221,7 +221,8 @@ func (p *PageActions) renderIncidents() {
 	p.setPageAction(0, "enter", "Detail")
 	p.setPageAction(1, "n", "New")
 	p.setPageAction(2, "u", "Update")
-	p.renderGlobal(3)
+	p.setPageAction(3, "d", "Delete")
+	p.renderGlobal(4)
 }
 
 func (p *PageActions) renderComponentsMaintenance() {

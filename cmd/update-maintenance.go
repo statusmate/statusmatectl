@@ -148,7 +148,7 @@ func maintenanceUpdateSubCmdF(command *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		data += buildComponentsFooter(availableComponents)
+		data += api.BuildComponentsEditorFooter(availableComponents)
 
 		for {
 			output, err := editor.CaptureInputFromEditor([]byte(data))

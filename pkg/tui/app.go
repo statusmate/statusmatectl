@@ -18,7 +18,7 @@ const (
 // App is the main TUI application.
 type App struct {
 	tv           *tview.Application
-	pages        *tview.Pages
+	pages        *Pages
 	layout       *tview.Flex
 	client       *api.Client
 	statusPage   *api.StatusPage
@@ -37,13 +37,14 @@ type App struct {
 	logs         *RequestLogView
 	user         *api.User
 	prompt       *CommandPrompt
+	breadcrumbs  *BreadcrumbsView
 }
 
 // NewApp creates and initializes the TUI application.
 func NewApp(client *api.Client, statusPage *api.StatusPage, version string) *App {
 	a := &App{
 		tv:         tview.NewApplication(),
-		pages:      tview.NewPages(),
+		pages:      newPages(),
 		client:     client,
 		statusPage: statusPage,
 		version:    version,
@@ -57,6 +58,7 @@ func (a *App) build() {
 	a.pageSwitcher = newPageSwitcher(a)
 	a.navTabs = newNavTabs(a)
 	a.pageActions = newPageActions(a)
+	a.breadcrumbs = newBreadcrumbsView(a)
 
 	a.incidents = newIncidentsView(a)
 	a.components = newComponentsView(a)
@@ -73,11 +75,14 @@ func (a *App) build() {
 	a.pages.AddPage(viewServers, a.servers.root(), true, false)
 	a.pages.AddPage(requestViewLogs, a.logs.root(), true, false)
 
+	a.pages.addListener(a.breadcrumbs)
+
 	a.layout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(a.buildHeader(), 5, 0, false).
 		AddItem(a.prompt, 0, 0, false).
-		AddItem(a.pages, 0, 1, true)
+		AddItem(a.pages, 0, 1, true).
+		AddItem(a.breadcrumbs, 1, 0, false)
 
 	a.tv.SetRoot(a.layout, true)
 	a.tv.SetInputCapture(a.onGlobalKey)
@@ -218,9 +223,17 @@ func (a *App) switchTo(name string) {
 		a.logs.stopTailing()
 	}
 	a.current = name
-	a.pages.SwitchToPage(name)
+	a.pages.Reset(name)
 	a.renderHeader()
 	a.refreshCurrent()
+}
+
+func (a *App) pushPage(name string) {
+	a.pages.Push(name)
+}
+
+func (a *App) popPage() {
+	a.pages.Pop()
 }
 
 func (a *App) refreshCurrent() {

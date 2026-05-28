@@ -41,7 +41,7 @@ func newComponentsView(app *App) *ComponentsView {
 	v.detail.SetTitleAlign(tview.AlignCenter)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
-			app.pages.SwitchToPage(viewComponents)
+			app.popPage()
 			app.tv.SetFocus(v.table)
 		}
 		return ev
@@ -205,6 +205,6 @@ func (v *ComponentsView) showDetail(comp *api.Component) {
 		v.detail.SetCell(row, 1, detailValueCell(comp.Description))
 	}
 
-	v.app.pages.SwitchToPage("compDetail")
+	v.app.pushPage("compDetail")
 	v.app.tv.SetFocus(v.detail)
 }

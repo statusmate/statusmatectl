@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,7 +25,8 @@ func GetPreferredEditorFromEnvironment() string {
 func resolveEditorArguments(executable string, filename string) []string {
 	args := []string{filename}
 
-	if strings.Contains(executable, "Visual Studio Code.app") {
+	base := strings.ToLower(filepath.Base(executable))
+	if strings.Contains(executable, "Visual Studio Code.app") || base == "code" || base == "zed" {
 		args = append([]string{"--wait"}, args...)
 	}
 
