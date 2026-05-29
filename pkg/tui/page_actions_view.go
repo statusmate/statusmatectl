@@ -38,6 +38,8 @@ func (p *PageActions) render() {
 		p.renderComponentsMaintenance()
 	case viewTeam:
 		p.renderGlobal(0)
+	case viewTemplates:
+		p.renderTemplates()
 	}
 }
 
@@ -72,6 +74,13 @@ func (p *PageActions) renderIncidents() {
 func (p *PageActions) renderComponentsMaintenance() {
 	p.setPageAction(0, "enter", "Detail")
 	p.renderGlobal(1)
+}
+
+func (p *PageActions) renderTemplates() {
+	p.setPageAction(0, "enter", "Detail")
+	p.setPageAction(1, "n", "New from template")
+	p.setPageAction(2, "d", "Delete")
+	p.renderGlobal(3)
 }
 
 // renderGlobal appends global shortcuts starting at the given row.

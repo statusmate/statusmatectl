@@ -12,6 +12,7 @@ const (
 	viewMaintenance = "maintenance"
 	viewTeam        = "team"
 	viewServers     = "servers"
+	viewTemplates   = "templates"
 	requestViewLogs = "request-logs"
 )
 
@@ -34,6 +35,7 @@ type App struct {
 	maintenance  *MaintenanceView
 	team         *TeamView
 	servers      *ServersView
+	templates    *TemplatesView
 	logs         *RequestLogView
 	user         *api.User
 	prompt       *CommandPrompt
@@ -65,6 +67,7 @@ func (a *App) build() {
 	a.maintenance = newMaintenanceView(a)
 	a.team = newTeamView(a)
 	a.servers = newServersView(a)
+	a.templates = newTemplatesView(a)
 	a.logs = newRequestLogView(a)
 	a.prompt = newCommandPrompt(a)
 
@@ -73,6 +76,7 @@ func (a *App) build() {
 	a.pages.AddPage(viewMaintenance, a.maintenance.root(), true, false)
 	a.pages.AddPage(viewTeam, a.team.root(), true, false)
 	a.pages.AddPage(viewServers, a.servers.root(), true, false)
+	a.pages.AddPage(viewTemplates, a.templates.root(), true, false)
 	a.pages.AddPage(requestViewLogs, a.logs.root(), true, false)
 
 	a.pages.addListener(a.breadcrumbs)
@@ -148,7 +152,7 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 
 	name, _ := a.pages.GetFrontPage()
 	switch name {
-	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, requestViewLogs:
+	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, requestViewLogs:
 	default:
 		return ev
 	}
@@ -179,6 +183,9 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case 's':
 		a.switchTo(viewServers)
+		return nil
+	case 'x':
+		a.switchTo(viewTemplates)
 		return nil
 	case 'l':
 		a.switchTo(requestViewLogs)
@@ -212,6 +219,8 @@ func (a *App) currentSearch() (func(string), func()) {
 		return a.team.filter, a.team.clearFilter
 	case viewServers:
 		return a.servers.filter, a.servers.clearFilter
+	case viewTemplates:
+		return a.templates.filter, a.templates.clearFilter
 	case requestViewLogs:
 		return a.logs.filter, a.logs.clearFilter
 	}
@@ -248,6 +257,8 @@ func (a *App) refreshCurrent() {
 		a.team.refresh()
 	case viewServers:
 		a.servers.refresh()
+	case viewTemplates:
+		a.templates.refresh()
 	case requestViewLogs:
 		a.logs.refresh()
 	}

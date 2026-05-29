@@ -23,6 +23,7 @@ var commandList = []string{
 	"components",
 	"maintenance",
 	"team",
+	"templates",
 	"pages",
 	"subscribers",
 	"server",
@@ -264,6 +265,8 @@ func (p *CommandPrompt) execute() {
 		p.app.switchTo(viewMaintenance)
 	case "team":
 		p.app.switchTo(viewTeam)
+	case "templates":
+		p.app.switchTo(viewTemplates)
 	case "server":
 		p.app.switchTo(viewServers)
 	}

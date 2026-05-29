@@ -113,6 +113,11 @@ func detailSectionCell(t string) *tview.TableCell {
 		SetExpansion(2)
 }
 
+func colorTag(c tcell.Color) string {
+	r, g, b := c.RGB()
+	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
+}
+
 func impactColor(s api.ImpactType) tcell.Color {
 	switch s {
 	case api.ImpactTypeOperational:
