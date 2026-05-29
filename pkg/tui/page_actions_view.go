@@ -2,168 +2,12 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
-	"github.com/statusmate/statusmatectl/pkg/api"
 )
 
-const (
-	clusterInfoWidth  = 36
-	pageSwitcherWidth = 26
-	navTabsWidth      = 20
-)
-
-// ServerInfo is the left panel of the header showing server/user/page.
-type ServerInfo struct {
-	*tview.Table
-	app *App
-}
-
-func newServerInfo(app *App) *ServerInfo {
-	s := &ServerInfo{
-		Table: tview.NewTable().SetSelectable(false, false),
-		app:   app,
-	}
-	s.SetBorderPadding(0, 0, 1, 0)
-	return s
-}
-
-func (s *ServerInfo) render() {
-	a := s.app
-
-	server := strings.TrimPrefix(a.client.BaseURL, "https://")
-	server = strings.TrimPrefix(server, "http://")
-
-	spName := "-"
-	if a.statusPage != nil {
-		spName = a.statusPage.Name
-	}
-
-	userName := "-"
-	if a.user != nil {
-		if a.user.Email != "" {
-			userName = a.user.Email
-		} else if a.user.Username != "" {
-			userName = a.user.Username
-		}
-	}
-
-	ver := a.version
-	if ver == "" {
-		ver = "dev"
-	}
-
-	rows := [][2]string{
-		{"Server", server},
-		{"User", userName},
-		{"Page", spName},
-		{"Version", ver},
-	}
-
-	s.Clear()
-	for i, r := range rows {
-		s.SetCell(i, 0, s.labelCell(r[0]))
-		s.SetCell(i, 1, s.valueCell(r[1]))
-	}
-}
-
-func (s *ServerInfo) labelCell(t string) *tview.TableCell {
-	return tview.NewTableCell(t+":").
-		SetAlign(tview.AlignLeft).
-		SetTextColor(tcell.ColorYellow)
-}
-
-func (s *ServerInfo) valueCell(t string) *tview.TableCell {
-	return tview.NewTableCell(t).
-		SetExpansion(1).
-		SetTextColor(tcell.ColorAqua)
-}
-
-// PageSwitcher shows numbered status pages (max 5) for quick navigation via digit keys.
-type PageSwitcher struct {
-	*tview.Table
-	app   *App
-	pages []api.StatusPage
-}
-
-func newPageSwitcher(app *App) *PageSwitcher {
-	p := &PageSwitcher{
-		Table: tview.NewTable().SetSelectable(false, false),
-		app:   app,
-	}
-	p.SetBorderPadding(0, 0, 1, 0)
-	return p
-}
-
-func (p *PageSwitcher) setPages(pages []api.StatusPage) {
-	p.pages = pages
-	p.render()
-}
-
-func (p *PageSwitcher) render() {
-	p.Clear()
-	limit := len(p.pages)
-	if limit > 5 {
-		limit = 5
-	}
-	for i := 0; i < limit; i++ {
-		pg := p.pages[i]
-
-		keyCell := tview.NewTableCell(fmt.Sprintf("<%d>", i)).
-			SetTextColor(tcell.ColorMediumPurple)
-
-		nameCell := tview.NewTableCell(" " + pg.Name).SetExpansion(1)
-		if p.app.statusPage != nil && p.app.statusPage.ID == pg.ID {
-			nameCell.SetTextColor(tcell.ColorYellow).SetAttributes(tcell.AttrBold)
-		} else {
-			nameCell.SetTextColor(tcell.ColorWhite)
-		}
-
-		p.SetCell(i, 0, keyCell)
-		p.SetCell(i, 1, nameCell)
-	}
-}
-
-// NavTabs is the navigation panel showing view shortcuts in two columns.
-type NavTabs struct {
-	*tview.Table
-	app *App
-}
-
-func newNavTabs(app *App) *NavTabs {
-	n := &NavTabs{
-		Table: tview.NewTable().SetSelectable(false, false),
-		app:   app,
-	}
-	n.SetBorderPadding(0, 0, 1, 0)
-	return n
-}
-
-func (n *NavTabs) render() {
-	items := []struct{ view, label, key string }{
-		{viewIncidents, "Incidents", "i"},
-		{viewComponents, "Components", "c"},
-		{viewMaintenance, "Maintenance", "m"},
-	}
-
-	n.Clear()
-	for row, item := range items {
-		keyCell := tview.NewTableCell(fmt.Sprintf("<%s>", item.key)).
-			SetTextColor(tcell.ColorCornflowerBlue)
-
-		nameCell := tview.NewTableCell(" " + item.label).SetExpansion(1)
-		if n.app.current == item.view {
-			nameCell.SetTextColor(tcell.ColorYellow).SetAttributes(tcell.AttrBold)
-		} else {
-			nameCell.SetTextColor(tcell.ColorWhite)
-		}
-
-		n.SetCell(row, 0, keyCell)
-		n.SetCell(row, 1, nameCell)
-	}
-}
+const rowsPerColumn = 6
 
 // PageActions shows page-specific subcommands and shortcuts in the header.
 // Content changes depending on the current active view.
@@ -239,22 +83,20 @@ func (p *PageActions) renderGlobal(startRow int) {
 		{"q", "Quit"},
 	}
 	for i, g := range globals {
-		row := startRow + i
-		if row >= 5 {
-			break
-		}
-		p.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("<%s>", g[0])).
-			SetTextColor(tcell.ColorYellow).SetSelectable(false))
-		p.SetCell(row, 1, tview.NewTableCell(" "+g[1]).
-			SetExpansion(1).SetTextColor(tcell.ColorWhite).SetSelectable(false))
+		p.setPageAction(startRow + i, g[0], g[1])
 	}
 }
 
+
 // setPageAction renders a single page-specific action key+label at the given row.
 func (p *PageActions) setPageAction(row int, key, label string) {
-	p.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("<%s>", key)).
+	col := row / rowsPerColumn       // 0 → колонки 0/1, 1 → 2/3, ...
+	r := row % rowsPerColumn
+	keyCol, labelCol := col*2, col*2+1
+
+	p.SetCell(r, keyCol, tview.NewTableCell(fmt.Sprintf("<%s>", key)).
 		SetTextColor(tcell.ColorCornflowerBlue).SetSelectable(false))
-	p.SetCell(row, 1, tview.NewTableCell(" "+label).
+	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).
 		SetExpansion(1).SetTextColor(tcell.ColorWhite).SetSelectable(false))
 }
 
