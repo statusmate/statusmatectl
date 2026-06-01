@@ -2,6 +2,8 @@ package tui
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -9,6 +11,19 @@ import (
 	"github.com/derailed/tview"
 	"github.com/statusmate/statusmatectl/pkg/api"
 )
+
+func openInBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default:
+		cmd = exec.Command("xdg-open", url)
+	}
+	cmd.Start() //nolint:errcheck
+}
 
 func shortUUID(uuid string) string {
 	if len(uuid) > 8 {

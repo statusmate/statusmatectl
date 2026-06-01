@@ -226,6 +226,11 @@ func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 			v.showResolveConfirm(inc)
 		}
 		return nil
+	case 'o':
+		if inc := v.selected(); inc != nil && inc.AbsoluteURL != nil && *inc.AbsoluteURL != "" {
+			openInBrowser(*inc.AbsoluteURL)
+		}
+		return nil
 	}
 	return ev
 }

@@ -163,9 +163,15 @@ func (v *MaintenanceView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	}
-	if ev.Rune() == 'd' {
+	switch ev.Rune() {
+	case 'd':
 		if m := v.selected(); m != nil {
 			v.showDeleteConfirm(m)
+		}
+		return nil
+	case 'o':
+		if m := v.selected(); m != nil && m.AbsoluteURL != "" {
+			openInBrowser(m.AbsoluteURL)
 		}
 		return nil
 	}

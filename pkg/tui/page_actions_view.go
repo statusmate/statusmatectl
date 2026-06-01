@@ -71,7 +71,8 @@ func (p *PageActions) renderIncidents() {
 	p.setPageAction(2, "u", "Update")
 	p.setPageAction(3, "d", "Delete")
 	p.setPageAction(4, "shift+r", "Resolve")
-	p.renderGlobal(5)
+	p.setPageAction(5, "o", "Open in browser")
+	p.renderGlobal(6)
 }
 
 func (p *PageActions) renderComponentsMaintenance() {
@@ -82,7 +83,8 @@ func (p *PageActions) renderComponentsMaintenance() {
 func (p *PageActions) renderMaintenance() {
 	p.setPageAction(0, "enter", "Describe")
 	p.setPageAction(1, "d", "Delete")
-	p.renderGlobal(2)
+	p.setPageAction(2, "o", "Open in browser")
+	p.renderGlobal(3)
 }
 
 func (p *PageActions) renderTemplates() {

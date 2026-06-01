@@ -7,13 +7,14 @@ import (
 )
 
 const (
-	viewIncidents   = "incidents"
-	viewComponents  = "components"
-	viewMaintenance = "maintenance"
-	viewTeam        = "team"
-	viewServers     = "servers"
-	viewTemplates   = "templates"
-	requestViewLogs = "request-logs"
+	viewIncidents    = "incidents"
+	viewComponents   = "components"
+	viewMaintenance  = "maintenance"
+	viewTeam         = "team"
+	viewServers      = "servers"
+	viewTemplates    = "templates"
+	viewPublicPages  = "public-pages"
+	requestViewLogs  = "request-logs"
 )
 
 // App is the main TUI application.
@@ -36,6 +37,7 @@ type App struct {
 	team         *TeamView
 	servers      *ServersView
 	templates    *TemplatesView
+	publicPages  *PublicPagesView
 	logs         *RequestLogView
 	user         *api.User
 	prompt       *CommandPrompt
@@ -68,6 +70,7 @@ func (a *App) build() {
 	a.team = newTeamView(a)
 	a.servers = newServersView(a)
 	a.templates = newTemplatesView(a)
+	a.publicPages = newPublicPagesView(a)
 	a.logs = newRequestLogView(a)
 	a.prompt = newCommandPrompt(a)
 
@@ -77,6 +80,7 @@ func (a *App) build() {
 	a.pages.AddPage(viewTeam, a.team.root(), true, false)
 	a.pages.AddPage(viewServers, a.servers.root(), true, false)
 	a.pages.AddPage(viewTemplates, a.templates.root(), true, false)
+	a.pages.AddPage(viewPublicPages, a.publicPages.root(), true, false)
 	a.pages.AddPage(requestViewLogs, a.logs.root(), true, false)
 
 	a.pages.addListener(a.breadcrumbs)
@@ -152,7 +156,7 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 
 	name, _ := a.pages.GetFrontPage()
 	switch name {
-	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, requestViewLogs:
+	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, viewPublicPages, requestViewLogs:
 	default:
 		return ev
 	}
@@ -212,6 +216,8 @@ func (a *App) currentSearch() (func(string), func()) {
 		return a.servers.filter, a.servers.clearFilter
 	case viewTemplates:
 		return a.templates.filter, a.templates.clearFilter
+	case viewPublicPages:
+		return a.publicPages.filter, a.publicPages.clearFilter
 	case requestViewLogs:
 		return a.logs.filter, a.logs.clearFilter
 	}
@@ -250,6 +256,8 @@ func (a *App) refreshCurrent() {
 		a.servers.refresh()
 	case viewTemplates:
 		a.templates.refresh()
+	case viewPublicPages:
+		a.publicPages.refresh()
 	case requestViewLogs:
 		a.logs.refresh()
 	}

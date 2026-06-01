@@ -269,6 +269,8 @@ func (p *CommandPrompt) execute() {
 		p.app.switchTo(viewTeam)
 	case "templates":
 		p.app.switchTo(viewTemplates)
+	case "pages":
+		p.app.switchTo(viewPublicPages)
 	case "server":
 		p.app.switchTo(viewServers)
 	case "quit":
