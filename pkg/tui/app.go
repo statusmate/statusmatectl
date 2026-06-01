@@ -172,23 +172,14 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 	case 'i':
 		a.switchTo(viewIncidents)
 		return nil
+	case 't':
+		a.switchTo(viewTemplates)
+		return nil
 	case 'c':
 		a.switchTo(viewComponents)
 		return nil
 	case 'm':
 		a.switchTo(viewMaintenance)
-		return nil
-	case 't':
-		a.switchTo(viewTeam)
-		return nil
-	case 's':
-		a.switchTo(viewServers)
-		return nil
-	case 'x':
-		a.switchTo(viewTemplates)
-		return nil
-	case 'l':
-		a.switchTo(requestViewLogs)
 		return nil
 	case 'r':
 		a.refreshCurrent()
@@ -298,6 +289,12 @@ func (a *App) switchServer(domain string) {
 			}
 		})
 	}()
+}
+
+
+func (a *App) Quit() {
+	a.logs.stopTailing()
+	a.tv.Stop()
 }
 
 // Run starts the TUI event loop.

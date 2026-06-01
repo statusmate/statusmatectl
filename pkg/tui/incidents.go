@@ -15,6 +15,7 @@ type IncidentsView struct {
 	app                *App
 	table              *tview.Table
 	detail             *tview.Table
+	describe           *IncidentDescribeView
 	deleteModal        *tview.Modal
 	resolveModal       *tview.Modal
 	detailCompIDs      []int
@@ -55,6 +56,7 @@ func newIncidentsView(app *App) *IncidentsView {
 	v.detail = tview.NewTable().SetSelectable(true, false)
 	v.detail.SetBorder(true)
 	v.detail.SetTitle(" Incident Detail ")
+	v.detail.SetBackgroundColor(tcell.ColorBlack)
 	v.detail.SetTitleAlign(tview.AlignCenter)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		switch ev.Key() {
@@ -88,8 +90,6 @@ func newIncidentsView(app *App) *IncidentsView {
 			}
 		})
 
-	v.deleteModal.SetBackgroundColor(tcell.ColorBlack)
-	v.deleteModal.SetBorder(true)
 	app.pages.AddPage("incDelete", v.deleteModal, true, false)
 
 	v.resolveModal = tview.NewModal().
@@ -102,9 +102,9 @@ func newIncidentsView(app *App) *IncidentsView {
 				v.confirmResolve()
 			}
 		})
-	v.resolveModal.SetBackgroundColor(tcell.ColorBlack)
-	v.resolveModal.SetBorder(true)
 	app.pages.AddPage("incResolve", v.resolveModal, true, false)
+
+	v.describe = newIncidentDescribeView(app)
 
 	return v
 }
@@ -203,7 +203,7 @@ func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 	switch ev.Key() {
 	case tcell.KeyEnter:
 		if inc := v.selected(); inc != nil {
-			v.showDetail(inc)
+			v.describe.show(inc)
 		}
 		return nil
 	}

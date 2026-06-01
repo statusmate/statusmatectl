@@ -7,7 +7,7 @@ import (
 	"github.com/derailed/tview"
 )
 
-const rowsPerColumn = 6
+const rowsPerColumn = 5
 
 // PageActions shows page-specific subcommands and shortcuts in the header.
 // Content changes depending on the current active view.
@@ -34,8 +34,10 @@ func (p *PageActions) render() {
 		p.renderServers()
 	case viewIncidents:
 		p.renderIncidents()
-	case viewComponents, viewMaintenance:
+	case viewComponents:
 		p.renderComponentsMaintenance()
+	case viewMaintenance:
+		p.renderMaintenance()
 	case viewTeam:
 		p.renderGlobal(0)
 	case viewTemplates:
@@ -64,7 +66,7 @@ func (p *PageActions) renderServers() {
 }
 
 func (p *PageActions) renderIncidents() {
-	p.setPageAction(0, "enter", "Detail")
+	p.setPageAction(0, "enter", "Describe")
 	p.setPageAction(1, "n", "New")
 	p.setPageAction(2, "u", "Update")
 	p.setPageAction(3, "d", "Delete")
@@ -75,6 +77,12 @@ func (p *PageActions) renderIncidents() {
 func (p *PageActions) renderComponentsMaintenance() {
 	p.setPageAction(0, "enter", "Detail")
 	p.renderGlobal(1)
+}
+
+func (p *PageActions) renderMaintenance() {
+	p.setPageAction(0, "enter", "Describe")
+	p.setPageAction(1, "d", "Delete")
+	p.renderGlobal(2)
 }
 
 func (p *PageActions) renderTemplates() {
@@ -136,6 +144,13 @@ func (p *PageActions) handleKey(ev *tcell.EventKey) *tcell.EventKey {
 			p.app.logs.setPreset(int(r - '0'))
 			return nil
 		}
+
+	case viewServers:
+		switch ev.Rune() {
+			case 'l':
+				p.app.switchTo(requestViewLogs)
+		}
+
 	}
 	return ev
 }

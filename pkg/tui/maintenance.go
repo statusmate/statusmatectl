@@ -13,7 +13,9 @@ import (
 type MaintenanceView struct {
 	app          *App
 	table        *tview.Table
-	detail       *tview.Table
+	detail       *MaintenanceDetailView
+	describe     *MaintenanceDescribeView
+	deleteModal  *tview.Modal
 	maintenances []api.Maintenance
 	displayed    []api.Maintenance
 	filterText   string
@@ -30,24 +32,45 @@ func newMaintenanceView(app *App) *MaintenanceView {
 			Background(tcell.ColorNavy).
 			Foreground(tcell.ColorWhite))
 	v.table.SetBorder(true)
-	v.table.SetTitle(" Maintenance ")
+	v.table.SetTitle(" Maintenances ")
 	v.table.SetBackgroundColor(tcell.ColorBlack)
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
 
-	v.detail = tview.NewTable().SetSelectable(true, false)
-	v.detail.SetBorder(true)
-	v.detail.SetTitle(" Maintenance Detail ")
-	v.detail.SetTitleAlign(tview.AlignCenter)
-	v.detail.SetBackgroundColor(tcell.ColorBlack)
-	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
+	v.table.SetDrawFunc(func(_ tcell.Screen, _, _, width, height int) (int, int, int, int) {
+		// uuid(6) + status(20) + start(20) + end(20) + separators(5) = 70
+		const fixedCols = 70
+		titleMax := max(width - fixedCols, 10)
+
+		for row := 1; row < v.table.GetRowCount(); row++ {
+			if cell := v.table.GetCell(row, 1); cell != nil {
+				cell.SetMaxWidth(titleMax)
+			}
+		}
+
+		for i, m := range v.displayed {
+			if cell := v.table.GetCell(i+1, 1); cell != nil {
+				cell.SetText(truncate(m.Title, titleMax))
+			}
+		}
+
+		return v.table.GetInnerRect()
+	})
+
+	v.detail = newMaintenanceDetailView(app)
+	v.describe = newMaintenanceDescribeView(app)
+
+	v.deleteModal = tview.NewModal().
+		SetText("Delete this maintenance?").
+		AddButtons([]string{"Delete", "Cancel"}).
+		SetDoneFunc(func(idx int, label string) {
 			app.popPage()
 			app.tv.SetFocus(v.table)
-		}
-		return ev
-	})
-	app.pages.AddPage("maintDetail", v.detail, true, false)
+			if label == "Delete" {
+				v.confirmDelete()
+			}
+		})
+	app.pages.AddPage("maintDelete", v.deleteModal, true, false)
 
 	return v
 }
@@ -91,9 +114,9 @@ func (v *MaintenanceView) render() {
 	}
 
 	if lower != "" {
-		v.table.SetTitle(fmt.Sprintf(" Maintenance [%d/%d] ", len(v.displayed), len(v.maintenances)))
+		v.table.SetTitle(fmt.Sprintf(" Maintenances [%d/%d] ", len(v.displayed), len(v.maintenances)))
 	} else {
-		v.table.SetTitle(fmt.Sprintf(" Maintenance [%d] ", len(v.maintenances)))
+		v.table.SetTitle(fmt.Sprintf(" Maintenances [%d] ", len(v.maintenances)))
 	}
 	v.table.Clear()
 
@@ -112,11 +135,10 @@ func (v *MaintenanceView) render() {
 			uuid = shortUUID(*m.UUID)
 		}
 		v.table.SetCell(row, 0, tview.NewTableCell(uuid).SetTextColor(tcell.ColorGray))
-		v.table.SetCell(row, 1, tview.NewTableCell(truncate(m.Title, 40)).SetTextColor(tcell.ColorWhite).SetExpansion(3))
+		v.table.SetCell(row, 1, tview.NewTableCell(m.Title).SetTextColor(tcell.ColorWhite))
 		v.table.SetCell(row, 2,
 			tview.NewTableCell(formatMaintenanceStatus(m.Status)).
-				SetTextColor(maintenanceStatusColor(m.Status)).
-				SetExpansion(2))
+				SetTextColor(maintenanceStatusColor(m.Status)))
 		v.table.SetCell(row, 3, tview.NewTableCell(formatTimePtr(m.StartAt)).SetTextColor(tcell.ColorGray))
 		v.table.SetCell(row, 4, tview.NewTableCell(formatTimePtr(m.EndAt)).SetTextColor(tcell.ColorGray))
 	}
@@ -137,56 +159,39 @@ func (v *MaintenanceView) selected() *api.Maintenance {
 func (v *MaintenanceView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 	if ev.Key() == tcell.KeyEnter {
 		if m := v.selected(); m != nil {
-			v.showDetail(m)
+			v.describe.show(m)
+		}
+		return nil
+	}
+	if ev.Rune() == 'd' {
+		if m := v.selected(); m != nil {
+			v.showDeleteConfirm(m)
 		}
 		return nil
 	}
 	return ev
 }
 
-func (v *MaintenanceView) showDetail(m *api.Maintenance) {
-	v.detail.Clear()
+func (v *MaintenanceView) showDeleteConfirm(m *api.Maintenance) {
+	v.deleteModal.SetText(fmt.Sprintf("Delete maintenance:\n[white::b]%s[-:-:-]?", m.Title))
+	v.app.pushPage("maintDelete")
+	v.app.tv.SetFocus(v.deleteModal)
+}
 
-	uuid := "-"
-	if m.UUID != nil {
-		uuid = *m.UUID
+func (v *MaintenanceView) confirmDelete() {
+	m := v.selected()
+	if m == nil || m.UUID == nil {
+		return
 	}
-
-	row := 0
-	v.detail.SetCell(row, 0, detailSectionCell(m.Title))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Status"))
-	v.detail.SetCell(row, 1, tview.NewTableCell(formatMaintenanceStatus(m.Status)).
-		SetTextColor(maintenanceStatusColor(m.Status)).SetExpansion(1))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
-	v.detail.SetCell(row, 1, detailValueCell(uuid))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Start"))
-	v.detail.SetCell(row, 1, detailValueCell(formatTimePtr(m.StartAt)))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("End"))
-	v.detail.SetCell(row, 1, detailValueCell(formatTimePtr(m.EndAt)))
-	row++
-	if m.Description != "" {
-		v.detail.SetCell(row, 0, detailLabelCell("Description"))
-		v.detail.SetCell(row, 1, detailValueCell(m.Description))
-		row++
-	}
-	if len(m.Updates) > 0 {
-		row++
-		v.detail.SetCell(row, 0, detailSectionCell("Updates"))
-		row++
-		for _, u := range m.Updates {
-			v.detail.SetCell(row, 0, tview.NewTableCell(u.At.Format("2006-01-02 15:04")).
-				SetTextColor(tcell.ColorGray))
-			v.detail.SetCell(row, 1, tview.NewTableCell(formatMaintenanceStatus(u.Status)).
-				SetTextColor(maintenanceStatusColor(u.Status)))
-			v.detail.SetCell(row, 2, detailValueCell(u.Description))
-			row++
+	uuid := *m.UUID
+	go func() {
+		if err := v.app.client.DeleteMaintenance(uuid); err != nil {
+			return
 		}
-	}
+		v.app.tv.QueueUpdateDraw(v.refresh)
+	}()
+}
 
-	v.app.pushPage("maintDetail")
-	v.app.tv.SetFocus(v.detail)
+func (v *MaintenanceView) showDetail(m *api.Maintenance) {
+	v.detail.show(m)
 }

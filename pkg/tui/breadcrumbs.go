@@ -31,15 +31,23 @@ func (b *BreadcrumbsView) StackTop(_ string) {
 
 func (b *BreadcrumbsView) render() {
 	stack := b.app.pages.Peek()
-	parts := make([]string, len(stack))
+
+	var parts []string
 	for i, name := range stack {
+		label := pageDisplayName(name)
+
 		if i == len(stack)-1 {
-			parts[i] = "[yellow::b]" + pageDisplayName(name) + "[-:-:-]"
+			parts = append(parts,
+				"[black:yellow:b] <"+label+"> [-:-:-]",
+			)
 		} else {
-			parts[i] = "[gray::]" + pageDisplayName(name) + "[-:-:-]"
+			parts = append(parts,
+				"[black:navy:b] <"+label+"> [-:-:-]",
+			)
 		}
 	}
-	b.SetText(" " + strings.Join(parts, " [gray::]>[-:-:-] "))
+
+	b.SetText(strings.Join(parts, " "))
 }
 
 func pageDisplayName(name string) string {
@@ -49,9 +57,9 @@ func pageDisplayName(name string) string {
 	case viewComponents:
 		return "Components"
 	case viewMaintenance:
-		return "Maintenance"
+		return "Maintenances"
 	case viewTeam:
-		return "Team"
+		return "Teams"
 	case viewServers:
 		return "Servers"
 	case requestViewLogs:

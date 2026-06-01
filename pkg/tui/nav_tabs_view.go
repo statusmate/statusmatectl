@@ -31,6 +31,7 @@ func (n *NavTabs) render() {
 		{viewIncidents, "Incidents", "i"},
 		{viewComponents, "Components", "c"},
 		{viewMaintenance, "Maintenance", "m"},
+		{viewTemplates, "Templates", "t"},
 	}
 
 	n.Clear()

@@ -18,10 +18,21 @@ func shortUUID(uuid string) string {
 }
 
 func truncate(s string, max int) string {
-	if len(s) <= max {
+	if max <= 0 {
+		return ""
+	}
+
+	r := []rune(s)
+
+	if len(r) <= max {
 		return s
 	}
-	return s[:max-3] + "..."
+
+	if max <= 3 {
+		return string(r[:max])
+	}
+
+	return string(r[:max-3]) + "..."
 }
 
 func formatAge(t *time.Time) string {

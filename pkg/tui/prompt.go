@@ -27,6 +27,7 @@ var commandList = []string{
 	"pages",
 	"subscribers",
 	"server",
+	"quit",
 }
 
 // CommandPrompt is a bar that appears above the table, activated by ':' or '?'.
@@ -52,6 +53,7 @@ func newCommandPrompt(app *App) *CommandPrompt {
 	p.SetDynamicColors(true)
 	p.SetBorderPadding(0, 0, 1, 1)
 	p.SetInputCapture(p.onKey)
+	p.SetBackgroundColor(tcell.ColorBlack)
 	return p
 }
 
@@ -60,7 +62,7 @@ func (p *CommandPrompt) ActivateCommand() {
 	p.mode = PromptModeCommand
 	p.onFilter = nil
 	p.onClear = nil
-	p.open(tcell.ColorYellow)
+	p.open(tcell.ColorWhite)
 }
 
 // ActivateSearch opens the prompt in search (filter) mode.
@@ -269,6 +271,8 @@ func (p *CommandPrompt) execute() {
 		p.app.switchTo(viewTemplates)
 	case "server":
 		p.app.switchTo(viewServers)
+	case "quit":
+		p.app.Quit()
 	}
 }
 
