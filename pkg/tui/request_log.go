@@ -69,6 +69,7 @@ func newRequestLogView(app *App) *RequestLogView {
 	v.table.SetTitle(" HTTP Logs ")
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
 
 	v.detail = tview.NewTextView()
 	v.detail.SetBorder(true)
@@ -77,6 +78,7 @@ func newRequestLogView(app *App) *RequestLogView {
 	v.detail.SetDynamicColors(true)
 	v.detail.SetScrollable(true)
 	v.detail.SetWrap(false)
+	v.detail.SetBackgroundColor(tcell.ColorBlack)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			app.popPage()

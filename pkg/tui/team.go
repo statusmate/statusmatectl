@@ -32,6 +32,8 @@ func newTeamView(app *App) *TeamView {
 	v.table.SetBorder(true)
 	v.table.SetTitle(" Team ")
 	v.table.SetTitleAlign(tview.AlignCenter)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
+
 	return v
 }
 

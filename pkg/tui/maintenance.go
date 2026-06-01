@@ -31,6 +31,7 @@ func newMaintenanceView(app *App) *MaintenanceView {
 			Foreground(tcell.ColorWhite))
 	v.table.SetBorder(true)
 	v.table.SetTitle(" Maintenance ")
+	v.table.SetBackgroundColor(tcell.ColorBlack)
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
 
@@ -38,6 +39,7 @@ func newMaintenanceView(app *App) *MaintenanceView {
 	v.detail.SetBorder(true)
 	v.detail.SetTitle(" Maintenance Detail ")
 	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetBackgroundColor(tcell.ColorBlack)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			app.popPage()
@@ -110,7 +112,7 @@ func (v *MaintenanceView) render() {
 			uuid = shortUUID(*m.UUID)
 		}
 		v.table.SetCell(row, 0, tview.NewTableCell(uuid).SetTextColor(tcell.ColorGray))
-		v.table.SetCell(row, 1, tview.NewTableCell(m.Title).SetTextColor(tcell.ColorWhite).SetExpansion(3))
+		v.table.SetCell(row, 1, tview.NewTableCell(truncate(m.Title, 40)).SetTextColor(tcell.ColorWhite).SetExpansion(3))
 		v.table.SetCell(row, 2,
 			tview.NewTableCell(formatMaintenanceStatus(m.Status)).
 				SetTextColor(maintenanceStatusColor(m.Status)).

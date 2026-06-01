@@ -35,12 +35,14 @@ func newTemplatesView(app *App) *TemplatesView {
 	v.table.SetBorder(true)
 	v.table.SetTitle(" Templates ")
 	v.table.SetTitleAlign(tview.AlignCenter)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
 	v.table.SetInputCapture(v.onKey)
 
 	v.detail = tview.NewTable().SetSelectable(true, false)
 	v.detail.SetBorder(true)
 	v.detail.SetTitle(" Template Detail ")
 	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetBackgroundColor(tcell.ColorBlack)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			app.popPage()

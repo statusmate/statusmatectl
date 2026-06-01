@@ -34,11 +34,13 @@ func newComponentsView(app *App) *ComponentsView {
 	v.table.SetTitle(" Components ")
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
 
 	v.detail = tview.NewTable().SetSelectable(true, false)
 	v.detail.SetBorder(true)
 	v.detail.SetTitle(" Component Detail ")
 	v.detail.SetTitleAlign(tview.AlignCenter)
+	v.detail.SetBackgroundColor(tcell.ColorBlack)
 	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
 		if ev.Key() == tcell.KeyEscape {
 			app.popPage()

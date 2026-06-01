@@ -16,6 +16,7 @@ type IncidentsView struct {
 	table              *tview.Table
 	detail             *tview.Table
 	deleteModal        *tview.Modal
+	resolveModal       *tview.Modal
 	detailCompIDs      []int
 	detailCompRowStart int
 	incidents          []api.Incident
@@ -38,6 +39,18 @@ func newIncidentsView(app *App) *IncidentsView {
 	v.table.SetTitle(" Incidents ")
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+	v.table.SetSelectionChangedFunc(func(row, _ int) {
+		idx := row - 1
+		if idx >= 0 && idx < len(v.displayed) && v.displayed[idx].Status != api.IncidentStatusResolved {
+			v.table.SetSelectedStyle(tcell.StyleDefault.
+				Background(tcell.NewRGBColor(160, 0, 0)).
+				Foreground(tcell.ColorWhite))
+		} else {
+			v.table.SetSelectedStyle(tcell.StyleDefault.
+				Background(tcell.ColorNavy).
+				Foreground(tcell.ColorWhite))
+		}
+	})
 
 	v.detail = tview.NewTable().SetSelectable(true, false)
 	v.detail.SetBorder(true)
@@ -78,6 +91,20 @@ func newIncidentsView(app *App) *IncidentsView {
 	v.deleteModal.SetBackgroundColor(tcell.ColorBlack)
 	v.deleteModal.SetBorder(true)
 	app.pages.AddPage("incDelete", v.deleteModal, true, false)
+
+	v.resolveModal = tview.NewModal().
+		SetText("Resolve this incident?").
+		AddButtons([]string{"Resolve", "Cancel"}).
+		SetDoneFunc(func(idx int, label string) {
+			app.popPage()
+			app.tv.SetFocus(v.table)
+			if label == "Resolve" {
+				v.confirmResolve()
+			}
+		})
+	v.resolveModal.SetBackgroundColor(tcell.ColorBlack)
+	v.resolveModal.SetBorder(true)
+	app.pages.AddPage("incResolve", v.resolveModal, true, false)
 
 	return v
 }
@@ -141,13 +168,22 @@ func (v *IncidentsView) render() {
 		if inc.UUID != nil {
 			uuid = shortUUID(*inc.UUID)
 		}
-		v.table.SetCell(row, 0, tview.NewTableCell(uuid).SetTextColor(tcell.ColorGray))
-		v.table.SetCell(row, 1, tview.NewTableCell(inc.Title).SetTextColor(tcell.ColorWhite).SetExpansion(3))
+		unresolved := inc.Status != api.IncidentStatusResolved
+		rowColor := tcell.ColorGray
+		titleColor := tcell.ColorWhite
+		bg := tcell.ColorBlack
+		if unresolved {
+			rowColor = tcell.ColorRed
+			titleColor = tcell.ColorRed
+			bg = tcell.NewRGBColor(60, 0, 0)
+		}
+		v.table.SetCell(row, 0, tview.NewTableCell(uuid).SetTextColor(rowColor).SetBackgroundColor(bg))
+		v.table.SetCell(row, 1, tview.NewTableCell(inc.Title).SetTextColor(titleColor).SetExpansion(3).SetBackgroundColor(bg))
 		v.table.SetCell(row, 2,
 			tview.NewTableCell(formatIncidentStatus(inc.Status)).
 				SetTextColor(incidentStatusColor(inc.Status)).
-				SetExpansion(2))
-		v.table.SetCell(row, 3, tview.NewTableCell(formatAge(inc.CreatedAt)).SetTextColor(tcell.ColorGray))
+				SetExpansion(2).SetBackgroundColor(bg))
+		v.table.SetCell(row, 3, tview.NewTableCell(formatAge(inc.CreatedAt)).SetTextColor(rowColor).SetBackgroundColor(bg))
 	}
 
 	if len(v.displayed) > 0 {
@@ -185,6 +221,11 @@ func (v *IncidentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 			v.showDeleteConfirm(inc)
 		}
 		return nil
+	case 'R':
+		if inc := v.selected(); inc != nil && inc.Status != api.IncidentStatusResolved {
+			v.showResolveConfirm(inc)
+		}
+		return nil
 	}
 	return ev
 }
@@ -206,6 +247,47 @@ func (v *IncidentsView) confirmDelete() {
 		if err := v.app.client.DeleteIncident(uuid); err != nil {
 			return
 		}
+		v.app.tv.QueueUpdateDraw(v.refresh)
+	}()
+}
+
+func (v *IncidentsView) showResolveConfirm(inc *api.Incident) {
+	v.resolveModal.SetText(fmt.Sprintf("Resolve incident:\n[white::b]%s[-:-:-]?", inc.Title))
+	v.app.pushPage("incResolve")
+	v.app.tv.SetFocus(v.resolveModal)
+}
+
+func (v *IncidentsView) confirmResolve() {
+	inc := v.selected()
+	if inc == nil || inc.ID == nil {
+		return
+	}
+	incID := *inc.ID
+	sourceComponents := inc.Components
+
+	go func() {
+		latestUpdate, _ := v.app.client.GetLatestIncidentUpdate(incID)
+		if latestUpdate != nil {
+			sourceComponents = latestUpdate.Components
+		}
+
+		resolvedComponents := make([]api.AffectedComponent, 0, len(sourceComponents))
+		for _, ac := range sourceComponents {
+			resolvedComponents = append(resolvedComponents, api.AffectedComponent{
+				Component: ac.Component,
+				Impact:    api.ImpactTypeOperational,
+			})
+		}
+
+		update := &api.IncidentUpdate{
+			Incident:    &incID,
+			Status:      api.IncidentStatusResolved,
+			Description: "Resolved.",
+			Notify:      true,
+			At:          time.Now(),
+			Components:  resolvedComponents,
+		}
+		v.app.client.CreateIncidentUpdate(update) //nolint:errcheck
 		v.app.tv.QueueUpdateDraw(v.refresh)
 	}()
 }

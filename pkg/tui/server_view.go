@@ -37,6 +37,8 @@ func newServersView(app *App) *ServersView {
 	v.table.SetTitle(" Servers ")
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
+	v.table.SetBackgroundColor(tcell.ColorBlack)
+
 	return v
 }
 

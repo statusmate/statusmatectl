@@ -68,7 +68,8 @@ func (p *PageActions) renderIncidents() {
 	p.setPageAction(1, "n", "New")
 	p.setPageAction(2, "u", "Update")
 	p.setPageAction(3, "d", "Delete")
-	p.renderGlobal(4)
+	p.setPageAction(4, "shift+r", "Resolve")
+	p.renderGlobal(5)
 }
 
 func (p *PageActions) renderComponentsMaintenance() {
