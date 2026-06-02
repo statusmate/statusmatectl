@@ -43,6 +43,7 @@ type App struct {
 	templates    *TemplatesView
 	publicPages  *PublicPagesView
 	logs         *RequestLogView
+	splash       *SplashView
 	user         *api.User
 	prompt       *CommandPrompt
 	breadcrumbs  *BreadcrumbsView
@@ -76,6 +77,7 @@ func (a *App) build() {
 	a.templates = newTemplatesView(a)
 	a.publicPages = newPublicPagesView(a)
 	a.logs = newRequestLogView(a)
+	a.splash = newSplashView(a)
 	a.prompt = newCommandPrompt(a)
 
 	a.pages.AddPage(viewIncidents, a.incidents.root(), true, true)
@@ -98,7 +100,7 @@ func (a *App) build() {
 
 	a.tv.SetRoot(a.layout, true)
 	a.tv.SetInputCapture(a.onGlobalKey)
-	a.switchTo(viewIncidents)
+	a.splash.show()
 
 	go func() {
 		user, err := a.client.GetMe()
@@ -303,6 +305,14 @@ func (a *App) switchServer(domain string) {
 	}()
 }
 
+
+func (a *App) dismiss() {
+	if a.current == "" {
+		a.layout.ResizeItem(a.header, 5, 0)
+		a.layout.ResizeItem(a.breadcrumbs, 1, 0)
+		a.switchTo(viewIncidents)
+	}
+}
 
 func (a *App) Quit() {
 	a.logs.stopTailing()
