@@ -83,7 +83,8 @@ func (p *PageActions) renderIncidents() {
 
 func (p *PageActions) renderComponentsMaintenance() {
 	p.setPageAction(0, "enter", "Describe")
-	p.renderGlobal(1)
+	p.setPageAction(1, "l", "Log")
+	p.renderGlobal(2)
 }
 
 func (p *PageActions) renderMaintenance() {

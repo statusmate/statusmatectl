@@ -18,6 +18,7 @@ const (
 	viewMaintDescribe = "maintDescribe"
 	viewIncDescribe   = "incDescribe"
 	viewTmplDescribe  = "tmplDescribe"
+	viewCompDescribe  = "compDescribe"
 )
 
 // App is the main TUI application.

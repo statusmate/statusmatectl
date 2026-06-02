@@ -21,8 +21,7 @@ func newMaintenanceDescribeView(app *App) *MaintenanceDescribeView {
 	d.text = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetWrap(false).
-		SetWordWrap(true)
+		SetWrap(false)
 
 	d.text.SetBackgroundColor(tcell.ColorBlack)
 	d.text.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
@@ -103,6 +102,7 @@ func (d *MaintenanceDescribeView) render(m *api.Maintenance, updates []api.Updat
 
 	field("Title", tview.Escape(m.Title))
 	fieldColor("Status", formatMaintenanceStatus(m.Status), colorTag(maintenanceStatusColor(m.Status)))
+
 	if m.UUID != nil {
 		field("UUID", tview.Escape(*m.UUID))
 	}

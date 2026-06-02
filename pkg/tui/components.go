@@ -13,7 +13,8 @@ import (
 type ComponentsView struct {
 	app          *App
 	table        *tview.Table
-	detail       *tview.Table
+	describe     *ComponentDescribeView
+	log          *ComponentLogView
 	components   []api.Component
 	displayed    []api.Component
 	filterText   string
@@ -36,19 +37,8 @@ func newComponentsView(app *App) *ComponentsView {
 	v.table.SetInputCapture(v.onKey)
 	v.table.SetBackgroundColor(tcell.ColorBlack)
 
-	v.detail = tview.NewTable().SetSelectable(true, false)
-	v.detail.SetBorder(true)
-	v.detail.SetTitle(" Component Detail ")
-	v.detail.SetTitleAlign(tview.AlignCenter)
-	v.detail.SetBackgroundColor(tcell.ColorBlack)
-	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
-			app.popPage()
-			app.tv.SetFocus(v.table)
-		}
-		return ev
-	})
-	app.pages.AddPage("compDetail", v.detail, true, false)
+	v.describe = newComponentDescribeView(app)
+	v.log = newComponentLogView(app)
 
 	return v
 }
@@ -163,50 +153,16 @@ func (v *ComponentsView) selected() *api.Component {
 func (v *ComponentsView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 	if ev.Key() == tcell.KeyEnter {
 		if comp := v.selected(); comp != nil {
-			v.showDetail(comp)
+			v.describe.show(comp)
+		}
+		return nil
+	}
+	switch ev.Rune() {
+	case 'l':
+		if comp := v.selected(); comp != nil {
+			v.log.show(comp)
 		}
 		return nil
 	}
 	return ev
-}
-
-func (v *ComponentsView) showDetail(comp *api.Component) {
-	v.detail.Clear()
-
-	uuid := "-"
-	if comp.UUID != nil {
-		uuid = *comp.UUID
-	}
-	enabled := "yes"
-	if !comp.Enabled {
-		enabled = "no"
-	}
-	uptime := comp.Uptime
-	if uptime == "" {
-		uptime = "-"
-	}
-
-	row := 0
-	v.detail.SetCell(row, 0, detailSectionCell(comp.Name))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
-	v.detail.SetCell(row, 1, detailValueCell(uuid))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Impact"))
-	v.detail.SetCell(row, 1, tview.NewTableCell(string(comp.Impact)).
-		SetTextColor(impactColor(comp.Impact)).SetExpansion(1))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Enabled"))
-	v.detail.SetCell(row, 1, detailValueCell(enabled))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Uptime"))
-	v.detail.SetCell(row, 1, detailValueCell(uptime))
-	row++
-	if comp.Description != "" {
-		v.detail.SetCell(row, 0, detailLabelCell("Description"))
-		v.detail.SetCell(row, 1, detailValueCell(comp.Description))
-	}
-
-	v.app.pushPage("compDetail")
-	v.app.tv.SetFocus(v.detail)
 }

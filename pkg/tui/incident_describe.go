@@ -21,8 +21,7 @@ func newIncidentDescribeView(app *App) *IncidentDescribeView {
 	d.text = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetWrap(false).
-		SetWordWrap(true)
+		SetWrap(false)
 
 	d.text.SetBackgroundColor(tcell.ColorBlack)
 	d.text.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {

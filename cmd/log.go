@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sort"
 	"time"
 
 	naturaldate "github.com/tj/go-naturaldate"
@@ -87,84 +86,26 @@ func logCmdF(command *cobra.Command, args []string) error {
 		componentID = *comp.ID
 	}
 
-	pageFilter := api.PaginatedRequestFilter{
-		"status_page": statusPage.ID,
-		"components":  []int{componentID},
+	apiEntries, err := client.GetComponentLogEntries(componentID, statusPage.ID, eventType)
+	if err != nil {
+		return err
 	}
 
 	var entries []printer.LogEntry
-
-	if eventType == "" || eventType == "incident" {
-		incidents, err := client.GetPaginatedIncidents(api.NewAllPaginatedRequest(pageFilter))
-		if err != nil {
-			return err
+	for _, e := range apiEntries {
+		if !inPeriod(e.At, sinceTime, untilTime) {
+			continue
 		}
-		for _, inc := range incidents.Results {
-			if !inPeriod(inc.StartAt, sinceTime, untilTime) {
-				continue
-			}
-			if inc.ID == nil {
-				continue
-			}
-			updates, err := client.GetPaginatedUpdates(
-				api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"incident": *inc.ID}),
-			)
-			if err != nil {
-				continue
-			}
-			for _, u := range updates.Results {
-				entries = append(entries, printer.LogEntry{
-					At:       u.At,
-					Object:   "incident",
-					UUID:     u.UUID,
-					Title:    inc.Title,
-					Status:   u.Status,
-					Desc:     u.Description,
-					ParentID: *inc.ID,
-				})
-			}
-		}
+		entries = append(entries, printer.LogEntry{
+			At:       e.At,
+			UUID:     e.UUID,
+			Object:   e.Object,
+			Title:    e.Title,
+			Status:   e.Status,
+			Desc:     e.Desc,
+			ParentID: e.ParentID,
+		})
 	}
-
-	if eventType == "" || eventType == "maintenance" {
-		maintenances, err := client.GetPaginatedMaintenance(api.NewAllPaginatedRequest(pageFilter))
-		if err != nil {
-			return err
-		}
-		for _, m := range maintenances.Results {
-			startAt := time.Time{}
-			if m.StartAt != nil {
-				startAt = *m.StartAt
-			}
-			if !inPeriod(startAt, sinceTime, untilTime) {
-				continue
-			}
-			if m.ID == nil {
-				continue
-			}
-			updates, err := client.GetPaginatedUpdates(
-				api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"maintenance": *m.ID}),
-			)
-			if err != nil {
-				continue
-			}
-			for _, u := range updates.Results {
-				entries = append(entries, printer.LogEntry{
-					At:       u.At,
-					Object:   "maintenance",
-					UUID:     u.UUID,
-					Title:    m.Title,
-					Status:   u.Status,
-					Desc:     u.Description,
-					ParentID: *m.ID,
-				})
-			}
-		}
-	}
-
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].At.After(entries[j].At)
-	})
 
 	if limit > 0 && len(entries) > limit {
 		entries = entries[:limit]
