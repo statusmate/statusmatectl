@@ -21,7 +21,7 @@ func newMaintenanceDescribeView(app *App) *MaintenanceDescribeView {
 	d.text = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetWrap(true).
+		SetWrap(false).
 		SetWordWrap(true)
 
 	d.text.SetBackgroundColor(tcell.ColorBlack)
@@ -40,13 +40,13 @@ func newMaintenanceDescribeView(app *App) *MaintenanceDescribeView {
 	d.flex.SetTitleAlign(tview.AlignCenter)
 	d.flex.SetBackgroundColor(tcell.ColorBlack)
 
-	app.pages.AddPage("maintDescribe", d.flex, true, false)
+	app.pages.AddPage(viewMaintDescribe, d.flex, true, false)
 	return d
 }
 
 func (d *MaintenanceDescribeView) show(m *api.Maintenance) {
 	d.text.SetText("[#808080::]Loading...[-::]")
-	d.app.pushPage("maintDescribe")
+	d.app.pushPage(viewMaintDescribe)
 	d.app.tv.SetFocus(d.text)
 
 	uuid := ""
@@ -101,34 +101,34 @@ func (d *MaintenanceDescribeView) render(m *api.Maintenance, updates []api.Updat
 		return "false", "#808080"
 	}
 
-	field("title", tview.Escape(m.Title))
-	fieldColor("status", formatMaintenanceStatus(m.Status), colorTag(maintenanceStatusColor(m.Status)))
+	field("Title", tview.Escape(m.Title))
+	fieldColor("Status", formatMaintenanceStatus(m.Status), colorTag(maintenanceStatusColor(m.Status)))
 	if m.UUID != nil {
-		field("uuid", tview.Escape(*m.UUID))
+		field("UUID", tview.Escape(*m.UUID))
 	}
 	if m.CreatedAt != nil {
-		field("created_at", m.CreatedAt.Format("2006-01-02 15:04:05"))
+		field("Created_at", m.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 	if m.StartAt != nil {
-		field("start_at", m.StartAt.Format("2006-01-02 15:04:05"))
+		field("Start_at", m.StartAt.Format("2006-01-02 15:04:05"))
 	}
 	if m.EndAt != nil {
-		field("end_at", m.EndAt.Format("2006-01-02 15:04:05"))
+		field("End_at", m.EndAt.Format("2006-01-02 15:04:05"))
 	}
 	if m.Description != "" {
-		field("description", tview.Escape(m.Description))
+		field("Description", tview.Escape(m.Description))
 	}
 	if m.PrivateNote != "" {
-		field("private_note", tview.Escape(m.PrivateNote))
+		field("Private_note", tview.Escape(m.PrivateNote))
 	}
 	v, c := boolVal(m.Notify)
-	fieldColor("notify", v, c)
+	fieldColor("Notify", v, c)
 	v, c = boolVal(m.AutoStart)
-	fieldColor("auto_start", v, c)
+	fieldColor("Auto_start", v, c)
 	v, c = boolVal(m.AutoEnd)
-	fieldColor("auto_end", v, c)
+	fieldColor("Auto_end", v, c)
 	v, c = boolVal(m.AffectUptime)
-	fieldColor("affect_uptime", v, c)
+	fieldColor("Affect_uptime", v, c)
 
 	if len(updates) == 0 {
 		d.text.SetText(sb.String())

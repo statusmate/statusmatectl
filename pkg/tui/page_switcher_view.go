@@ -43,13 +43,13 @@ func (p *PageSwitcher) render() {
 		pg := p.pages[i]
 
 		keyCell := tview.NewTableCell(fmt.Sprintf("<%d>", i)).
-			SetTextColor(tcell.ColorMediumPurple)
+			SetTextColor(tcell.ColorFuchsia)
 
 		nameCell := tview.NewTableCell(" " + pg.Name).SetExpansion(1)
 		if p.app.statusPage != nil && p.app.statusPage.ID == pg.ID {
 			nameCell.SetTextColor(tcell.ColorYellow).SetAttributes(tcell.AttrBold)
 		} else {
-			nameCell.SetTextColor(tcell.ColorWhite)
+			nameCell.SetTextColor(tcell.ColorGray)
 		}
 
 		p.SetCell(i, 0, keyCell)

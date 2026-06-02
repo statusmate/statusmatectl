@@ -13,7 +13,6 @@ import (
 type MaintenanceView struct {
 	app          *App
 	table        *tview.Table
-	detail       *MaintenanceDetailView
 	describe     *MaintenanceDescribeView
 	deleteModal  *tview.Modal
 	maintenances []api.Maintenance
@@ -57,7 +56,6 @@ func newMaintenanceView(app *App) *MaintenanceView {
 		return v.table.GetInnerRect()
 	})
 
-	v.detail = newMaintenanceDetailView(app)
 	v.describe = newMaintenanceDescribeView(app)
 
 	v.deleteModal = tview.NewModal().
@@ -196,8 +194,4 @@ func (v *MaintenanceView) confirmDelete() {
 		}
 		v.app.tv.QueueUpdateDraw(v.refresh)
 	}()
-}
-
-func (v *MaintenanceView) showDetail(m *api.Maintenance) {
-	v.detail.show(m)
 }

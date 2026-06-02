@@ -13,13 +13,13 @@ import (
 
 // TemplatesView displays incident/maintenance templates for a status page.
 type TemplatesView struct {
-	app               *App
-	table             *tview.Table
-	detail            *tview.Table
+	app                *App
+	table              *tview.Table
+	describe           *TemplateDescribeView
 	detailCompRowStart int
-	templates         []api.Template
-	displayed         []api.Template
-	filterText        string
+	templates          []api.Template
+	displayed          []api.Template
+	filterText         string
 }
 
 func newTemplatesView(app *App) *TemplatesView {
@@ -38,20 +38,7 @@ func newTemplatesView(app *App) *TemplatesView {
 	v.table.SetBackgroundColor(tcell.ColorBlack)
 	v.table.SetInputCapture(v.onKey)
 
-	v.detail = tview.NewTable().SetSelectable(true, false)
-	v.detail.SetBorder(true)
-	v.detail.SetTitle(" Template Detail ")
-	v.detail.SetTitleAlign(tview.AlignCenter)
-	v.detail.SetBackgroundColor(tcell.ColorBlack)
-	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEscape {
-			app.popPage()
-			app.tv.SetFocus(v.table)
-			return nil
-		}
-		return ev
-	})
-	app.pages.AddPage("tmplDetail", v.detail, true, false)
+	v.describe = newTemplateDescribeView(app)
 
 	return v
 }
@@ -146,7 +133,7 @@ func (v *TemplatesView) selected() *api.Template {
 func (v *TemplatesView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 	if ev.Key() == tcell.KeyEnter {
 		if t := v.selected(); t != nil {
-			v.showDetail(t)
+			v.describe.show(t)
 		}
 		return nil
 	}
@@ -246,112 +233,6 @@ func (v *TemplatesView) showCreateFromTemplate(t *api.Template) {
 			v.app.client.CreateIncident(payload) //nolint:errcheck
 		}
 	}()
-}
-
-func (v *TemplatesView) showDetail(t *api.Template) {
-	v.detail.Clear()
-
-	uuid := "-"
-	if t.UUID != nil {
-		uuid = *t.UUID
-	}
-
-	row := 0
-	v.detail.SetCell(row, 0, detailSectionCell(t.Title))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
-	v.detail.SetCell(row, 1, detailValueCell(uuid))
-	row++
-	if t.FriendlyName != "" {
-		v.detail.SetCell(row, 0, detailLabelCell("Friendly name"))
-		v.detail.SetCell(row, 1, detailValueCell(t.FriendlyName))
-		row++
-	}
-	if t.Status != nil && *t.Status != "" {
-		v.detail.SetCell(row, 0, detailLabelCell("Status"))
-		v.detail.SetCell(row, 1, tview.NewTableCell(prettyStatus(*t.Status)).
-			SetTextColor(templateStatusColor(*t.Status)).SetExpansion(1))
-		row++
-	}
-	v.detail.SetCell(row, 0, detailLabelCell("Notify"))
-	v.detail.SetCell(row, 1, detailValueCell(fmt.Sprintf("%v", t.Notify)))
-	row++
-	if t.CreatedAt != nil {
-		v.detail.SetCell(row, 0, detailLabelCell("Created"))
-		v.detail.SetCell(row, 1, detailValueCell(t.CreatedAt.Format("2006-01-02 15:04")))
-		row++
-	}
-	if t.Description != "" {
-		row++
-		v.detail.SetCell(row, 0, detailSectionCell("Description"))
-		row++
-		v.detail.SetCell(row, 0, detailValueCell(t.Description))
-		row++
-	}
-	if len(t.Components) > 0 {
-		row++
-		v.detail.SetCell(row, 0, detailSectionCell("Components"))
-		row++
-		compRowStart := row
-		v.detailCompRowStart = compRowStart
-		for _, c := range t.Components {
-			v.detail.SetCell(row, 0, tview.NewTableCell(fmt.Sprintf("id:%d", c.Component)).
-				SetTextColor(tcell.ColorWhite).SetExpansion(2))
-			v.detail.SetCell(row, 1, tview.NewTableCell(string(c.Impact)).
-				SetTextColor(impactColor(c.Impact)).SetExpansion(1))
-			row++
-		}
-
-		comps := t.Components
-		cachedComps := make([]api.Component, len(v.app.components.components))
-		copy(cachedComps, v.app.components.components)
-		var spFilter api.PaginatedRequestFilter
-		if v.app.statusPage != nil {
-			spFilter = api.PaginatedRequestFilter{"status_page": v.app.statusPage.ID}
-		}
-		go func() {
-			all := cachedComps
-			if len(all) == 0 {
-				filter := api.PaginatedRequestFilter{}
-				if spFilter != nil {
-					filter = spFilter
-				}
-				result, err := v.app.client.GetPaginatedComponents(api.NewAllPaginatedRequest(filter))
-				if err != nil {
-					return
-				}
-				all = result.Results
-			}
-			nameMap := make(map[int]string, len(all))
-			for _, c := range all {
-				if c.ID != nil {
-					nameMap[*c.ID] = c.Name
-				}
-			}
-			v.app.tv.QueueUpdateDraw(func() {
-				for i, c := range comps {
-					name := fmt.Sprintf("id:%d", c.Component)
-					if n, ok := nameMap[c.Component]; ok {
-						name = n
-					}
-					v.detail.SetCell(compRowStart+i, 0, tview.NewTableCell(name).
-						SetTextColor(tcell.ColorWhite).SetExpansion(2))
-				}
-			})
-		}()
-	}
-	if len(t.AssignedTags) > 0 {
-		row++
-		v.detail.SetCell(row, 0, detailSectionCell("Tags"))
-		row++
-		for _, tag := range t.AssignedTags {
-			v.detail.SetCell(row, 0, detailValueCell(tag.Title))
-			row++
-		}
-	}
-
-	v.app.pushPage("tmplDetail")
-	v.app.tv.SetFocus(v.detail)
 }
 
 func templateStatusColor(status string) tcell.Color {

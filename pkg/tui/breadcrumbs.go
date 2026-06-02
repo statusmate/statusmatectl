@@ -62,7 +62,7 @@ func pageDisplayName(name string) string {
 		return "Teams"
 	case viewServers:
 		return "Servers"
-	case requestViewLogs:
+	case viewRequestLogs:
 		return "Logs"
 	case "incDetail":
 		return "Incident"
@@ -72,6 +72,8 @@ func pageDisplayName(name string) string {
 		return "Maintenance"
 	case "logDetail":
 		return "Log Entry"
+	case viewTmplDescribe:
+		return "Template"
 	default:
 		return name
 	}

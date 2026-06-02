@@ -14,7 +14,10 @@ const (
 	viewServers      = "servers"
 	viewTemplates    = "templates"
 	viewPublicPages  = "public-pages"
-	requestViewLogs  = "request-logs"
+	viewRequestLogs  = "request-logs"
+	viewMaintDescribe = "maintDescribe"
+	viewIncDescribe   = "incDescribe"
+	viewTmplDescribe  = "tmplDescribe"
 )
 
 // App is the main TUI application.
@@ -81,7 +84,7 @@ func (a *App) build() {
 	a.pages.AddPage(viewServers, a.servers.root(), true, false)
 	a.pages.AddPage(viewTemplates, a.templates.root(), true, false)
 	a.pages.AddPage(viewPublicPages, a.publicPages.root(), true, false)
-	a.pages.AddPage(requestViewLogs, a.logs.root(), true, false)
+	a.pages.AddPage(viewRequestLogs, a.logs.root(), true, false)
 
 	a.pages.addListener(a.breadcrumbs)
 
@@ -127,7 +130,7 @@ func (a *App) buildHeader() tview.Primitive {
 
 func (a *App) renderHeader() {
 	a.srvInfo.render()
-	if a.current == requestViewLogs {
+	if a.current == viewRequestLogs {
 		a.header.ResizeItem(a.pageSwitcher, 0, 0)
 		a.header.ResizeItem(a.navTabs, 0, 0)
 	} else {
@@ -156,7 +159,7 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 
 	name, _ := a.pages.GetFrontPage()
 	switch name {
-	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, viewPublicPages, requestViewLogs:
+	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, viewPublicPages, viewRequestLogs:
 	default:
 		return ev
 	}
@@ -218,14 +221,14 @@ func (a *App) currentSearch() (func(string), func()) {
 		return a.templates.filter, a.templates.clearFilter
 	case viewPublicPages:
 		return a.publicPages.filter, a.publicPages.clearFilter
-	case requestViewLogs:
+	case viewRequestLogs:
 		return a.logs.filter, a.logs.clearFilter
 	}
 	return func(string) {}, func() {}
 }
 
 func (a *App) switchTo(name string) {
-	if a.current == requestViewLogs && name != requestViewLogs {
+	if a.current == viewRequestLogs && name != viewRequestLogs {
 		a.logs.stopTailing()
 	}
 	a.current = name
@@ -258,7 +261,7 @@ func (a *App) refreshCurrent() {
 		a.templates.refresh()
 	case viewPublicPages:
 		a.publicPages.refresh()
-	case requestViewLogs:
+	case viewRequestLogs:
 		a.logs.refresh()
 	}
 }

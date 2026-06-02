@@ -40,13 +40,13 @@ func newIncidentDescribeView(app *App) *IncidentDescribeView {
 	d.flex.SetTitleAlign(tview.AlignCenter)
 	d.flex.SetBackgroundColor(tcell.ColorBlack)
 
-	app.pages.AddPage("incDescribe", d.flex, true, false)
+	app.pages.AddPage(viewIncDescribe, d.flex, true, false)
 	return d
 }
 
 func (d *IncidentDescribeView) show(inc *api.Incident) {
 	d.text.SetText("[#808080::]Loading...[-::]")
-	d.app.pushPage("incDescribe")
+	d.app.pushPage(viewIncDescribe)
 	d.app.tv.SetFocus(d.text)
 
 	uuid := ""
@@ -101,32 +101,32 @@ func (d *IncidentDescribeView) render(inc *api.Incident, updates []api.Update[st
 		return "false", "#808080"
 	}
 
-	field("title", tview.Escape(inc.Title))
-	fieldColor("status", formatIncidentStatus(inc.Status), colorTag(incidentStatusColor(inc.Status)))
+	field("Title", tview.Escape(inc.Title))
+	fieldColor("Status", formatIncidentStatus(inc.Status), colorTag(incidentStatusColor(inc.Status)))
 	if inc.UUID != nil {
-		field("uuid", tview.Escape(*inc.UUID))
+		field("UUID", tview.Escape(*inc.UUID))
 	}
 	if inc.CreatedAt != nil {
-		field("created_at", inc.CreatedAt.Format("2006-01-02 15:04:05"))
+		field("Created_at", inc.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 	if !inc.StartAt.IsZero() {
-		field("start_at", inc.StartAt.Format("2006-01-02 15:04:05"))
+		field("Start_at", inc.StartAt.Format("2006-01-02 15:04:05"))
 	}
 	if inc.EndAt != nil {
-		field("end_at", inc.EndAt.Format("2006-01-02 15:04:05"))
+		field("End_at", inc.EndAt.Format("2006-01-02 15:04:05"))
 	}
 	if inc.Description != "" {
-		field("description", tview.Escape(inc.Description))
+		field("Description", tview.Escape(inc.Description))
 	}
 	if inc.PrivateNote != "" {
-		field("private_note", tview.Escape(inc.PrivateNote))
+		field("Private_note", tview.Escape(inc.PrivateNote))
 	}
 	v, c := boolVal(inc.Notify)
-	fieldColor("notify", v, c)
+	fieldColor("Notify", v, c)
 	v, c = boolVal(inc.ShowOnTop)
-	fieldColor("show_on_top", v, c)
+	fieldColor("Show_on_top", v, c)
 	v, c = boolVal(inc.AffectUptime)
-	fieldColor("affect_uptime", v, c)
+	fieldColor("Affect_uptime", v, c)
 
 	if len(updates) == 0 {
 		d.text.SetText(sb.String())

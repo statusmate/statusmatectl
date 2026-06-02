@@ -156,7 +156,7 @@ func (v *ServersView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 	if (ev.Key() == 'l') {
 		if s := v.selected(); s != nil && !s.current {
 			v.app.switchServer(s.domain)
-			v.app.switchTo(requestViewLogs);
+			v.app.switchTo(viewRequestLogs);
 		}
 		return nil
 	}

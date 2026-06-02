@@ -37,13 +37,13 @@ func (n *NavTabs) render() {
 	n.Clear()
 	for row, item := range items {
 		keyCell := tview.NewTableCell(fmt.Sprintf("<%s>", item.key)).
-			SetTextColor(tcell.ColorCornflowerBlue)
+			SetTextColor(tcell.ColorBlue)
 
 		nameCell := tview.NewTableCell(" " + item.label).SetExpansion(1)
 		if n.app.current == item.view {
 			nameCell.SetTextColor(tcell.ColorYellow).SetAttributes(tcell.AttrBold)
 		} else {
-			nameCell.SetTextColor(tcell.ColorWhite)
+			nameCell.SetTextColor(tcell.ColorGray)
 		}
 
 		n.SetCell(row, 0, keyCell)

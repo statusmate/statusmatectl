@@ -28,7 +28,7 @@ func newPageActions(app *App) *PageActions {
 func (p *PageActions) render() {
 	p.Clear()
 	switch p.app.current {
-	case requestViewLogs:
+	case viewRequestLogs:
 		p.renderLogs()
 	case viewServers:
 		p.renderServers()
@@ -42,6 +42,8 @@ func (p *PageActions) render() {
 		p.renderGlobal(0)
 	case viewTemplates:
 		p.renderTemplates()
+	case viewMaintDescribe:
+		p.renderMaintDescribe()
 	}
 }
 
@@ -60,6 +62,10 @@ func (p *PageActions) renderLogs() {
 	p.setGlobalRow(4, "r", "Refresh", "q", "Quit")
 }
 
+func (p *PageActions) renderMaintDescribe() {
+	p.renderGlobal(0)
+}
+
 func (p *PageActions) renderServers() {
 	p.setPageAction(0, "l", "Logs")
 	p.renderGlobal(1)
@@ -76,7 +82,7 @@ func (p *PageActions) renderIncidents() {
 }
 
 func (p *PageActions) renderComponentsMaintenance() {
-	p.setPageAction(0, "enter", "Detail")
+	p.setPageAction(0, "enter", "Describe")
 	p.renderGlobal(1)
 }
 
@@ -88,7 +94,7 @@ func (p *PageActions) renderMaintenance() {
 }
 
 func (p *PageActions) renderTemplates() {
-	p.setPageAction(0, "enter", "Detail")
+	p.setPageAction(0, "enter", "Describe")
 	p.setPageAction(1, "n", "New from template")
 	p.setPageAction(2, "d", "Delete")
 	p.renderGlobal(3)
@@ -115,9 +121,9 @@ func (p *PageActions) setPageAction(row int, key, label string) {
 	keyCol, labelCol := col*2, col*2+1
 
 	p.SetCell(r, keyCol, tview.NewTableCell(fmt.Sprintf("<%s>", key)).
-		SetTextColor(tcell.ColorCornflowerBlue).SetSelectable(false))
+		SetTextColor(tcell.ColorBlue).SetSelectable(false))
 	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).
-		SetExpansion(1).SetTextColor(tcell.ColorWhite).SetSelectable(false))
+		SetExpansion(1).SetTextColor(tcell.ColorGray).SetSelectable(false))
 }
 
 // setPresetCell renders a log time-preset key+label.
@@ -140,7 +146,7 @@ func (p *PageActions) setPresetCell(row, colBase int, key, label string, active 
 // Returns nil if the event was consumed, or the original event to pass through.
 func (p *PageActions) handleKey(ev *tcell.EventKey) *tcell.EventKey {
 	switch p.app.current {
-	case requestViewLogs:
+	case viewRequestLogs:
 		r := ev.Rune()
 		if r >= '0' && r <= '5' {
 			p.app.logs.setPreset(int(r - '0'))
@@ -150,7 +156,7 @@ func (p *PageActions) handleKey(ev *tcell.EventKey) *tcell.EventKey {
 	case viewServers:
 		switch ev.Rune() {
 			case 'l':
-				p.app.switchTo(requestViewLogs)
+				p.app.switchTo(viewRequestLogs)
 		}
 
 	}
