@@ -26,6 +26,17 @@ func MaintenanceStatusList() []MaintenanceStatusType {
 	}
 }
 
+// IsMaintenanceStatus reports whether status is one of the concrete maintenance
+// statuses. The shared "notice" status is intentionally excluded because it is
+// ambiguous between incidents and maintenance.
+func IsMaintenanceStatus(status string) bool {
+	switch MaintenanceStatusType(status) {
+	case MaintenanceStatusNotStarted, MaintenanceStatusInProgress, MaintenanceStatusCompleted:
+		return true
+	}
+	return false
+}
+
 func MaintenanceActiveStatusList() []MaintenanceStatusType {
 	return []MaintenanceStatusType{
 		MaintenanceStatusNotStarted,

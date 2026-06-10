@@ -89,7 +89,7 @@ func (v *TemplatesView) render() {
 	}
 	v.table.Clear()
 
-	for i, h := range []string{"UUID", "TITLE", "STATUS", "COMPONENTS"} {
+	for i, h := range []string{"UUID", "TITLE", "KIND", "STATUS"} {
 		v.table.SetCell(0, i, tview.NewTableCell(h).
 			SetTextColor(tcell.ColorYellow).
 			SetAttributes(tcell.AttrBold).
@@ -109,12 +109,16 @@ func (v *TemplatesView) render() {
 			status = prettyStatus(*t.Status)
 			statusColor = templateStatusColor(*t.Status)
 		}
-		compCount := fmt.Sprintf("%d", len(t.Components))
+		friendlyName := t.Title
+		if t.FriendlyName != "" {
+			friendlyName = t.FriendlyName
+		}
+		kind := templateKind(t)
 
 		v.table.SetCell(row, 0, tview.NewTableCell(uuid).SetTextColor(tcell.ColorGray))
-		v.table.SetCell(row, 1, tview.NewTableCell(t.Title).SetTextColor(tcell.ColorWhite).SetExpansion(3))
-		v.table.SetCell(row, 2, tview.NewTableCell(status).SetTextColor(statusColor).SetExpansion(2))
-		v.table.SetCell(row, 3, tview.NewTableCell(compCount).SetTextColor(tcell.ColorGray))
+		v.table.SetCell(row, 1, tview.NewTableCell(friendlyName).SetTextColor(tcell.ColorWhite).SetExpansion(3))
+		v.table.SetCell(row, 2, tview.NewTableCell(kind).SetTextColor(templateKindColor(kind)).SetExpansion(1))
+		v.table.SetCell(row, 3, tview.NewTableCell(status).SetTextColor(statusColor).SetExpansion(1))
 	}
 
 	if len(v.displayed) > 0 {
@@ -174,11 +178,20 @@ func (v *TemplatesView) showDeleteConfirm(t *api.Template) {
 	v.app.tv.SetFocus(modal)
 }
 
+// showCreateFromTemplate creates an incident or a maintenance from the template,
+// depending on the template's status.
 func (v *TemplatesView) showCreateFromTemplate(t *api.Template) {
 	if v.app.statusPage == nil {
 		return
 	}
+	if t.Status != nil && api.IsMaintenanceStatus(*t.Status) {
+		v.showCreateMaintenanceFromTemplate(t)
+		return
+	}
+	v.showCreateIncidentFromTemplate(t)
+}
 
+func (v *TemplatesView) showCreateIncidentFromTemplate(t *api.Template) {
 	go func() {
 		comps, err := v.app.client.GetPaginatedComponents(
 			api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"status_page": v.app.statusPage.ID}),
@@ -216,23 +229,84 @@ func (v *TemplatesView) showCreateFromTemplate(t *api.Template) {
 			return
 		}
 
-		confirmed := make(chan bool, 1)
-		v.app.tv.QueueUpdateDraw(func() {
-			modal := tview.NewModal().
-				SetText(fmt.Sprintf("Create incident: %q?", payload.Title)).
-				AddButtons([]string{"Create", "Cancel"}).
-				SetDoneFunc(func(_ int, label string) {
-					v.app.pages.RemovePage("confirm-create-template-incident")
-					confirmed <- (label == "Create")
-				})
-			v.app.pages.AddPage("confirm-create-template-incident", modal, true, true)
-			v.app.tv.SetFocus(modal)
-		})
-
-		if <-confirmed {
+		if v.confirmCreate("incident", payload.Title) {
 			v.app.client.CreateIncident(payload) //nolint:errcheck
 		}
 	}()
+}
+
+func (v *TemplatesView) showCreateMaintenanceFromTemplate(t *api.Template) {
+	go func() {
+		comps, err := v.app.client.GetPaginatedComponents(
+			api.NewAllPaginatedRequest(api.PaginatedRequestFilter{"status_page": v.app.statusPage.ID}),
+		)
+		if err != nil {
+			return
+		}
+
+		payload := api.NewCreateMaintenancePayload(v.app.statusPage)
+		payload.Title = t.Title
+		payload.Description = t.Description
+		payload.Notify = t.Notify
+		payload.Components = affectedComponentsToStrings(t.Components, comps.Results)
+
+		data, err := format.Marshal(payload, &api.CreateMaintenancePayloadFieldDescriptions)
+		if err != nil {
+			return
+		}
+		data += api.BuildComponentsEditorFooter(comps.Results)
+
+		v.app.tv.Suspend(func() {
+			output, err := editor.CaptureInputFromEditor([]byte(data))
+			if err != nil {
+				return
+			}
+			if err := format.Unmarshal(string(output), payload); err != nil {
+				return
+			}
+		})
+
+		if strings.TrimSpace(payload.Title) == "" {
+			return
+		}
+
+		if v.confirmCreate("maintenance", payload.Title) {
+			v.app.client.CreateMaintenance(payload) //nolint:errcheck
+		}
+	}()
+}
+
+// confirmCreate shows a confirmation modal and blocks until the user responds.
+func (v *TemplatesView) confirmCreate(kind, title string) bool {
+	confirmed := make(chan bool, 1)
+	v.app.tv.QueueUpdateDraw(func() {
+		modal := tview.NewModal().
+			SetText(fmt.Sprintf("Create %s: %q?", kind, title)).
+			AddButtons([]string{"Create", "Cancel"}).
+			SetDoneFunc(func(_ int, label string) {
+				v.app.pages.RemovePage("confirm-create-template-entity")
+				confirmed <- (label == "Create")
+			})
+		v.app.pages.AddPage("confirm-create-template-entity", modal, true, true)
+		v.app.tv.SetFocus(modal)
+	})
+	return <-confirmed
+}
+
+// templateKind returns the entity kind a template is for, based on its status.
+func templateKind(t api.Template) string {
+	if t.Status != nil && api.IsMaintenanceStatus(*t.Status) {
+		return "maintenance"
+	}
+	return "incident"
+}
+
+// templateKindColor returns the display color for a template kind.
+func templateKindColor(kind string) tcell.Color {
+	if kind == "maintenance" {
+		return tcell.ColorTeal
+	}
+	return tcell.ColorOrange
 }
 
 func templateStatusColor(status string) tcell.Color {
