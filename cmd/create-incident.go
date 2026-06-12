@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/manifoldco/promptui"
@@ -145,7 +144,7 @@ func createIncidentCmdF(command *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		data += buildComponentsFooter(availableComponents)
+		data += api.BuildComponentsEditorFooter(availableComponents)
 
 		for {
 			output, err := editor.CaptureInputFromEditor([]byte(data))
@@ -158,7 +157,7 @@ func createIncidentCmdF(command *cobra.Command, args []string) error {
 				return err
 			}
 
-			validationErrs := validateCreateIncidentPayload(newIncident)
+			validationErrs := newIncident.Validate()
 			if len(validationErrs) == 0 {
 				var buf bytes.Buffer
 				printer.PrintSummaryCreateIncidentPayload(&buf, newIncident)
@@ -181,7 +180,6 @@ func createIncidentCmdF(command *cobra.Command, args []string) error {
 				return nil
 			}
 
-			// сохраняем отредактированный вывод как основу для следующего прохода
 			data = string(output)
 		}
 	}
@@ -225,76 +223,8 @@ var impactChoices = []struct {
 	{"o  — operational", "o"},
 }
 
-type componentEntry struct {
-	component api.Component
-	display   string // name with indentation reflecting hierarchy
-}
-
-func flattenComponentTree(components []api.Component) []componentEntry {
-	children := make(map[int][]api.Component)
-	var roots []api.Component
-
-	for _, c := range components {
-		if c.Parent == nil {
-			roots = append(roots, c)
-		} else {
-			children[*c.Parent] = append(children[*c.Parent], c)
-		}
-	}
-
-	var result []componentEntry
-	var flatten func(comps []api.Component, indent string)
-	flatten = func(comps []api.Component, indent string) {
-		for _, c := range comps {
-			result = append(result, componentEntry{component: c, display: indent + c.Name})
-			if c.ID != nil {
-				if kids, ok := children[*c.ID]; ok {
-					flatten(kids, indent+"  ")
-				}
-			}
-		}
-	}
-	flatten(roots, "")
-
-	return result
-}
-
-func buildComponentsFooter(components []api.Component) string {
-	if len(components) == 0 {
-		return ""
-	}
-
-	children := make(map[int][]api.Component)
-	var roots []api.Component
-	for _, c := range components {
-		if c.Parent == nil {
-			roots = append(roots, c)
-		} else {
-			children[*c.Parent] = append(children[*c.Parent], c)
-		}
-	}
-
-	var sb strings.Builder
-	sb.WriteString("\n# Доступные компоненты:\n")
-
-	var write func(comps []api.Component, indent string)
-	write = func(comps []api.Component, indent string) {
-		for _, c := range comps {
-			sb.WriteString(fmt.Sprintf("#%s- %s\n", indent, c.Name))
-			if c.ID != nil {
-				if kids, ok := children[*c.ID]; ok {
-					write(kids, indent+"  ")
-				}
-			}
-		}
-	}
-	write(roots, " ")
-
-	return sb.String()
-}
-
 func selectComponentsInteractive(components []api.Component) ([]string, error) {
-	entries := flattenComponentTree(components)
+	entries := api.FlattenComponentTree(components)
 	selected := make(map[int]string) // entry index -> "impact name"
 
 	impactLabels := make([]string, len(impactChoices))
@@ -306,9 +236,9 @@ func selectComponentsInteractive(components []api.Component) ([]string, error) {
 		items := make([]string, 0, len(entries)+1)
 		for i, e := range entries {
 			if impact, ok := selected[i]; ok {
-				items = append(items, fmt.Sprintf("[%s] %s", impact, e.display))
+				items = append(items, fmt.Sprintf("[%s] %s", impact, e.Display))
 			} else {
-				items = append(items, fmt.Sprintf("    %s", e.display))
+				items = append(items, fmt.Sprintf("    %s", e.Display))
 			}
 		}
 		items = append(items, "Done")
@@ -336,7 +266,7 @@ func selectComponentsInteractive(components []api.Component) ([]string, error) {
 		}
 
 		impactSel := promptui.Select{
-			Label: fmt.Sprintf("Impact для %q", entries[idx].component.Name),
+			Label: fmt.Sprintf("Impact для %q", entries[idx].Component.Name),
 			Items: impactItems,
 		}
 
@@ -348,7 +278,7 @@ func selectComponentsInteractive(components []api.Component) ([]string, error) {
 		if impactIdx == len(impactChoices) {
 			delete(selected, idx)
 		} else {
-			selected[idx] = impactChoices[impactIdx].key + " " + entries[idx].component.Name
+			selected[idx] = impactChoices[impactIdx].key + " " + entries[idx].Component.Name
 		}
 	}
 
@@ -359,21 +289,4 @@ func selectComponentsInteractive(components []api.Component) ([]string, error) {
 		}
 	}
 	return result, nil
-}
-
-func validateCreateIncidentPayload(p *api.CreateIncidentPayload) []string {
-	var errs []string
-	if strings.TrimSpace(p.Title) == "" {
-		errs = append(errs, "title: обязательное поле")
-	}
-	if strings.TrimSpace(p.Description) == "" {
-		errs = append(errs, "description: обязательное поле")
-	}
-	if len(p.Components) == 0 {
-		errs = append(errs, "components: укажите хотя бы один компонент")
-	}
-	if p.StartAt.IsZero() {
-		errs = append(errs, "start_at: обязательное поле")
-	}
-	return errs
 }

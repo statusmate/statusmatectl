@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -153,4 +154,73 @@ func (c *Client) DeleteComponent(uuid string) error {
 	}
 
 	return nil
+}
+
+// ComponentEntry is a flattened component with an indented display name for UI lists.
+type ComponentEntry struct {
+	Component Component
+	Display   string
+}
+
+// FlattenComponentTree returns components in depth-first order with Display indented by hierarchy level.
+func FlattenComponentTree(components []Component) []ComponentEntry {
+	children := make(map[int][]Component)
+	var roots []Component
+	for _, c := range components {
+		if c.Parent == nil {
+			roots = append(roots, c)
+		} else {
+			children[*c.Parent] = append(children[*c.Parent], c)
+		}
+	}
+
+	var result []ComponentEntry
+	var flatten func(comps []Component, indent string)
+	flatten = func(comps []Component, indent string) {
+		for _, c := range comps {
+			result = append(result, ComponentEntry{Component: c, Display: indent + c.Name})
+			if c.ID != nil {
+				if kids, ok := children[*c.ID]; ok {
+					flatten(kids, indent+"  ")
+				}
+			}
+		}
+	}
+	flatten(roots, "")
+	return result
+}
+
+// BuildComponentsEditorFooter builds a commented component list appended to editor templates.
+func BuildComponentsEditorFooter(components []Component) string {
+	if len(components) == 0 {
+		return ""
+	}
+
+	children := make(map[int][]Component)
+	var roots []Component
+	for _, c := range components {
+		if c.Parent == nil {
+			roots = append(roots, c)
+		} else {
+			children[*c.Parent] = append(children[*c.Parent], c)
+		}
+	}
+
+	var sb strings.Builder
+	sb.WriteString("\n# Доступные компоненты:\n")
+
+	var write func(comps []Component, indent string)
+	write = func(comps []Component, indent string) {
+		for _, c := range comps {
+			sb.WriteString(fmt.Sprintf("#%s- %s\n", indent, c.Name))
+			if c.ID != nil {
+				if kids, ok := children[*c.ID]; ok {
+					write(kids, indent+"  ")
+				}
+			}
+		}
+	}
+	write(roots, " ")
+
+	return sb.String()
 }

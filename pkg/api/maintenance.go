@@ -26,6 +26,17 @@ func MaintenanceStatusList() []MaintenanceStatusType {
 	}
 }
 
+// IsMaintenanceStatus reports whether status is one of the concrete maintenance
+// statuses. The shared "notice" status is intentionally excluded because it is
+// ambiguous between incidents and maintenance.
+func IsMaintenanceStatus(status string) bool {
+	switch MaintenanceStatusType(status) {
+	case MaintenanceStatusNotStarted, MaintenanceStatusInProgress, MaintenanceStatusCompleted:
+		return true
+	}
+	return false
+}
+
 func MaintenanceActiveStatusList() []MaintenanceStatusType {
 	return []MaintenanceStatusType{
 		MaintenanceStatusNotStarted,
@@ -227,6 +238,21 @@ func (c *Client) GetMaintenanceByID(id int) (*Maintenance, error) {
 		}
 	}
 	return nil, fmt.Errorf("maintenance id=%d not found", id)
+}
+
+func (c *Client) DeleteMaintenance(uuid string) error {
+	resp, err := c.Delete(fmt.Sprintf("/api/maintenance/%s/", uuid))
+	if err != nil {
+		return errors.New("failed to perform DELETE request: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete maintenance: %s\n%s", resp.Status, string(body))
+	}
+
+	return nil
 }
 
 func (c *Client) GetPaginatedMaintenance(payload PaginatedRequest) (*Paginated[Maintenance], error) {

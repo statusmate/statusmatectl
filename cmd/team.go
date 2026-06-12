@@ -140,7 +140,7 @@ func pickTeam(client *api.Client) (int, error) {
 
 	if client.AuthRC != nil {
 		client.AuthRC.DefaultTeam = selected.ID
-		_ = SaveAuthRC(client.BaseURL, client.AuthRC)
+		_ = api.SaveAuthRC(client.BaseURL, client.AuthRC)
 	}
 
 	return selected.ID, nil

@@ -52,7 +52,7 @@ func touchIncidentCmdF(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	data += buildComponentsFooter(comps.Results)
+	data += api.BuildComponentsEditorFooter(comps.Results)
 
 	if err := os.WriteFile(filePath, []byte(data), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)

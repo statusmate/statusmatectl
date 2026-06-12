@@ -33,6 +33,10 @@ func NewClient(baseURL string, logger *slog.Logger) *Client {
 	}
 }
 
+func (c *Client) Logger() *slog.Logger {
+	return c.logger
+}
+
 func (c *Client) SetAuthToken(token string) {
 	if c.AuthRC == nil {
 		c.AuthRC = &AuthRC{}

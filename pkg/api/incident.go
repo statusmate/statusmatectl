@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -145,6 +146,23 @@ func NewIncident(statusPage *StatusPage) *Incident {
 	}
 }
 
+func (p *CreateIncidentPayload) Validate() []string {
+	var errs []string
+	if strings.TrimSpace(p.Title) == "" {
+		errs = append(errs, "title: обязательное поле")
+	}
+	if strings.TrimSpace(p.Description) == "" {
+		errs = append(errs, "description: обязательное поле")
+	}
+	if len(p.Components) == 0 {
+		errs = append(errs, "components: укажите хотя бы один компонент")
+	}
+	if p.StartAt.IsZero() {
+		errs = append(errs, "start_at: обязательное поле")
+	}
+	return errs
+}
+
 func NewCreateIncidentPayload(statusPage *StatusPage) *CreateIncidentPayload {
 	return &CreateIncidentPayload{
 		StatusPage:   statusPage.ID,
@@ -262,6 +280,21 @@ func (c *Client) GetIncidentByID(id int) (*Incident, error) {
 		}
 	}
 	return nil, fmt.Errorf("incident id=%d not found", id)
+}
+
+func (c *Client) DeleteIncident(uuid string) error {
+	resp, err := c.Delete(fmt.Sprintf("/api/incident/%s/", uuid))
+	if err != nil {
+		return errors.New("failed to perform DELETE request: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete incident: %s\n%s", resp.Status, string(body))
+	}
+
+	return nil
 }
 
 func (c *Client) GetPaginatedIncidents(payload PaginatedRequest) (*Paginated[Incident], error) {

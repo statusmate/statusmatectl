@@ -24,7 +24,7 @@ func InitClientCommandContextCobra(command *cobra.Command) (*api.Client, error) 
 		return nil, err
 	}
 
-	authRC, err := LoadAuthRC(client.BaseURL)
+	authRC, err := api.LoadAuthRC(client.BaseURL)
 	if err != nil {
 		return nil, errors.New("need auth You need to authorize this machine using `st4 login`")
 	}
@@ -52,7 +52,7 @@ func NewClient(server string, verbose bool) (*api.Client, error) {
 }
 
 func createLogger(server string, verbose bool) (*slog.Logger, error) {
-	filename, err := checkDir(server, "http_requests.log")
+	filename, err := api.CheckDir(server, "http_requests.log")
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func pickStatusPage(cl *api.Client) (*api.StatusPage, error) {
 
 	if cl.AuthRC != nil {
 		cl.AuthRC.DefaultStatusPage = selected.Slug
-		_ = SaveAuthRC(cl.BaseURL, cl.AuthRC)
+		_ = api.SaveAuthRC(cl.BaseURL, cl.AuthRC)
 	}
 
 	return selected, nil
