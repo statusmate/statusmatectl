@@ -17,16 +17,16 @@ func PrintSubscribers(w io.Writer, paginated *api.Paginated[api.Subscriber], con
 
 func PrintSummarySubscriber(w io.Writer, sub *api.Subscriber) error {
 	uuid := nullOrValue(sub.UUID)
-	verified := "no"
-	if sub.Verified {
-		verified = "yes"
+	confirmed := "no"
+	if sub.Confirmed {
+		confirmed = "yes"
 	}
 
 	_, err := fmt.Fprintf(w,
-		"uuid=%s\nemail=%s\nverified=%s\nsubscribe_by_email=%v\nsubscribe_by_webhook=%v\ncreated_at=%s\n",
+		"uuid=%s\nemail=%s\nconfirmed=%s\nsubscribe_by_email=%v\nsubscribe_by_webhook=%v\ncreated_at=%s\n",
 		uuid,
 		sub.Email,
-		verified,
+		confirmed,
 		sub.SubscribeByEmail,
 		sub.SubscribeByWebhook,
 		formatTime(sub.CreatedAt),

@@ -2,8 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"os/exec"
-	"runtime"
 	"strings"
 
 	"github.com/derailed/tcell/v2"
@@ -13,14 +11,12 @@ import (
 
 // PublicPagesView displays all available status pages.
 type PublicPagesView struct {
-	app          *App
-	table        *tview.Table
-	detail       *tview.Table
-	pages        []api.StatusPage
-	displayed    []api.StatusPage
-	filterText   string
-	detailURLRow int
-	detailURL    string
+	app        *App
+	table      *tview.Table
+	describe   *PublicPageDescribeView
+	pages      []api.StatusPage
+	displayed  []api.StatusPage
+	filterText string
 }
 
 func newPublicPagesView(app *App) *PublicPagesView {
@@ -39,27 +35,7 @@ func newPublicPagesView(app *App) *PublicPagesView {
 	v.table.SetBackgroundColor(tcell.ColorBlack)
 	v.table.SetInputCapture(v.onKey)
 
-	v.detail = tview.NewTable().SetSelectable(true, false)
-	v.detail.SetBorder(true)
-	v.detail.SetTitle(" Page Detail ")
-	v.detail.SetTitleAlign(tview.AlignCenter)
-	v.detail.SetBackgroundColor(tcell.ColorBlack)
-	v.detail.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		switch ev.Key() {
-		case tcell.KeyEscape:
-			app.popPage()
-			app.tv.SetFocus(v.table)
-			return nil
-		case tcell.KeyEnter:
-			row, _ := v.detail.GetSelection()
-			if row == v.detailURLRow && v.detailURL != "" {
-				openBrowser(v.detailURL)
-			}
-			return nil
-		}
-		return ev
-	})
-	app.pages.AddPage("pubPageDetail", v.detail, true, false)
+	v.describe = newPublicPageDescribeView(app)
 
 	return v
 }
@@ -138,77 +114,20 @@ func (v *PublicPagesView) selected() *api.StatusPage {
 }
 
 func (v *PublicPagesView) onKey(ev *tcell.EventKey) *tcell.EventKey {
-	if ev.Key() == tcell.KeyEnter {
+	switch ev.Key() {
+	case tcell.KeyEnter:
 		if p := v.selected(); p != nil {
-			v.showDetail(p)
+			v.app.setCurrentPage(p)
 		}
 		return nil
+	case tcell.KeyRune:
+		switch ev.Rune() {
+		case 'd':
+			if p := v.selected(); p != nil {
+				v.describe.show(p)
+			}
+			return nil
+		}
 	}
 	return ev
-}
-
-func (v *PublicPagesView) showDetail(p *api.StatusPage) {
-	v.detail.Clear()
-
-	row := 0
-	v.detail.SetCell(row, 0, detailLabelCell("Name"))
-	v.detail.SetCell(row, 1, detailValueCell(p.Name))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("UUID"))
-	v.detail.SetCell(row, 1, detailValueCell(p.UUID))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Slug"))
-	v.detail.SetCell(row, 1, detailValueCell(p.Slug))
-	row++
-	v.detailURLRow = row
-	v.detailURL = p.AbsoluteURL
-	urlCell := tview.NewTableCell(p.AbsoluteURL).
-		SetTextColor(tcell.ColorCornflowerBlue).
-		SetAttributes(tcell.AttrUnderline).
-		SetExpansion(1)
-	v.detail.SetCell(row, 0, detailLabelCell("URL"))
-	v.detail.SetCell(row, 1, urlCell)
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Team"))
-	v.detail.SetCell(row, 1, detailValueCell(p.TeamSlug))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Impact"))
-	v.detail.SetCell(row, 1, tview.NewTableCell(string(p.Impact)).
-		SetTextColor(impactColor(p.Impact)).SetExpansion(1))
-	row++
-	if p.CustomDomain != "" {
-		v.detail.SetCell(row, 0, detailLabelCell("Custom domain"))
-		v.detail.SetCell(row, 1, detailValueCell(p.CustomDomain))
-		row++
-	}
-	v.detail.SetCell(row, 0, detailLabelCell("Timezone"))
-	v.detail.SetCell(row, 1, detailValueCell(p.TimeZone))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Language"))
-	v.detail.SetCell(row, 1, detailValueCell(string(p.Lang)))
-	row++
-	v.detail.SetCell(row, 0, detailLabelCell("Dark mode"))
-	v.detail.SetCell(row, 1, detailValueCell(string(p.DarkMode)))
-	row++
-	if p.CreatedAt != nil {
-		v.detail.SetCell(row, 0, detailLabelCell("Created"))
-		v.detail.SetCell(row, 1, detailValueCell(formatTimePtr(p.CreatedAt)))
-		row++
-	}
-
-	v.app.pushPage("pubPageDetail")
-	v.app.tv.SetFocus(v.detail)
-}
-
-func openBrowser(url string) {
-	var cmd string
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = "open"
-	case "windows":
-		cmd = "start"
-	default:
-		cmd = "xdg-open"
-	}
-	exec.Command(cmd, url).Start() //nolint:errcheck
 }

@@ -62,6 +62,8 @@ func pageDisplayName(name string) string {
 		return "Teams"
 	case viewServers:
 		return "Servers"
+	case viewSubscribers:
+		return "Subscribers"
 	case viewRequestLogs:
 		return "Logs"
 	case "incDetail":
@@ -74,6 +76,12 @@ func pageDisplayName(name string) string {
 		return "Log Entry"
 	case viewTmplDescribe:
 		return "Template"
+	case viewPubPageDescribe:
+		return "Public Page"
+	case viewServerDescribe:
+		return "Server AuthRC"
+	case viewSubDescribe:
+		return "Subscriber"
 	default:
 		return name
 	}

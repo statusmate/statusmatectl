@@ -15,11 +15,33 @@ const (
 )
 
 type AuthRC struct {
-	API                string `json:"api"`
-	Token              string `json:"token"`
-	DefaultStatusPage  string `json:"default_status_page"`
-	DefaultReleasePage string `json:"default_release_page"`
-	DefaultTeam        int    `json:"default_team,omitempty"`
+	API                string         `json:"api"`
+	Token              string         `json:"token"`
+	DefaultStatusPage  string         `json:"default_status_page"`
+	DefaultReleasePage string         `json:"default_release_page"`
+	DefaultTeam        int            `json:"default_team,omitempty"`
+	RecentPages        []string       `json:"recent_pages,omitempty"` // status-page slugs, oldest first, newest last, max maxRecentPages
+}
+
+const maxRecentPages = 5
+
+// RecordPageVisit moves slug to the most-recent slot, keeping at most
+// maxRecentPages entries (oldest first, newest last).
+func (rc *AuthRC) RecordPageVisit(slug string) {
+	if slug == "" {
+		return
+	}
+	out := rc.RecentPages[:0]
+	for _, s := range rc.RecentPages {
+		if s != slug { // dedup: drop existing occurrence
+			out = append(out, s)
+		}
+	}
+	out = append(out, slug)
+	if len(out) > maxRecentPages {
+		out = out[len(out)-maxRecentPages:]
+	}
+	rc.RecentPages = out
 }
 
 func sanitizeDomain(server string) string {

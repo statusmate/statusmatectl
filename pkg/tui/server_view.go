@@ -13,6 +13,7 @@ import (
 type ServersView struct {
 	app        *App
 	table      *tview.Table
+	describe   *ServerDescribeView
 	servers    []serverEntry
 	displayed  []serverEntry
 	filterText string
@@ -38,6 +39,8 @@ func newServersView(app *App) *ServersView {
 	v.table.SetTitleAlign(tview.AlignCenter)
 	v.table.SetInputCapture(v.onKey)
 	v.table.SetBackgroundColor(tcell.ColorBlack)
+
+	v.describe = newServerDescribeView(app)
 
 	return v
 }
@@ -157,6 +160,12 @@ func (v *ServersView) onKey(ev *tcell.EventKey) *tcell.EventKey {
 		if s := v.selected(); s != nil && !s.current {
 			v.app.switchServer(s.domain)
 			v.app.switchTo(viewRequestLogs);
+		}
+		return nil
+	}
+	if ev.Key() == tcell.KeyRune && ev.Rune() == 'd' {
+		if s := v.selected(); s != nil {
+			v.describe.show(s)
 		}
 		return nil
 	}
