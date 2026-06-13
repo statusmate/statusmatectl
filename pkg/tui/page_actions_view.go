@@ -141,8 +141,7 @@ func (p *PageActions) setPageAction(row int, key, label string) {
 
 	p.SetCell(r, keyCol, tview.NewTableCell(fmt.Sprintf("<%s>", key)).
 		SetTextColor(tcell.ColorBlue).SetSelectable(false))
-	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).
-		SetExpansion(1).SetTextColor(tcell.ColorGray).SetSelectable(false))
+	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).SetTextColor(tcell.ColorGray).SetSelectable(false))
 }
 
 // setPresetCell renders a log time-preset key+label.
