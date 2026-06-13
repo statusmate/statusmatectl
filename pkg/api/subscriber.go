@@ -16,8 +16,10 @@ type Subscriber struct {
 	SubscribeByEmail   bool       `json:"subscribe_by_email" tab:"Email"`
 	SubscribeByWebhook bool       `json:"subscribe_by_webhook" tab:"Webhook"`
 	HasPassword        bool       `json:"has_password" tab:"HasPwd"`
-	Verified           bool       `json:"verified" tab:"Verified"`
+	Confirmed           bool      `json:"confirmed" tab:"Confirmed"`
 	WebhookURL         string     `json:"webhook_url,omitempty"`
+	SubscribeTo		   string 	  `json:"subscribe_to" tab:"Subscribe to"`
+	Components 	 	   []int 	  `json:"components"`
 	CreatedAt          *time.Time `json:"created_at,omitempty" tab:"Created"`
 }
 

@@ -42,6 +42,10 @@ func (p *PageActions) render() {
 		p.renderGlobal(0)
 	case viewTemplates:
 		p.renderTemplates()
+	case viewPublicPages:
+		p.renderPublicPages()
+	case viewSubscribers:
+		p.renderSubscribers()
 	case viewMaintDescribe:
 		p.renderMaintDescribe()
 	}
@@ -67,8 +71,9 @@ func (p *PageActions) renderMaintDescribe() {
 }
 
 func (p *PageActions) renderServers() {
-	p.setPageAction(0, "l", "Logs")
-	p.renderGlobal(1)
+	p.setPageAction(0, "d", "Describe")
+	p.setPageAction(1, "l", "Logs")
+	p.renderGlobal(2)
 }
 
 func (p *PageActions) renderIncidents() {
@@ -101,6 +106,20 @@ func (p *PageActions) renderTemplates() {
 	p.renderGlobal(3)
 }
 
+func (p *PageActions) renderPublicPages() {
+	p.setPageAction(0, "enter", "Set current")
+	p.setPageAction(1, "d", "Describe")
+	p.renderGlobal(2)
+}
+
+func (p *PageActions) renderSubscribers() {
+	p.setPageAction(0, "enter", "Describe")
+	p.setPageAction(1, "n", "New")
+	p.setPageAction(2, "a", "Approve")
+	p.setPageAction(3, "d", "Delete")
+	p.renderGlobal(4)
+}
+
 // renderGlobal appends global shortcuts starting at the given row.
 func (p *PageActions) renderGlobal(startRow int) {
 	globals := [][2]string{
@@ -110,21 +129,19 @@ func (p *PageActions) renderGlobal(startRow int) {
 		{"q", "Quit"},
 	}
 	for i, g := range globals {
-		p.setPageAction(startRow + i, g[0], g[1])
+		p.setPageAction(startRow+i, g[0], g[1])
 	}
 }
 
-
 // setPageAction renders a single page-specific action key+label at the given row.
 func (p *PageActions) setPageAction(row int, key, label string) {
-	col := row / rowsPerColumn       // 0 → колонки 0/1, 1 → 2/3, ...
+	col := row / rowsPerColumn // 0 → колонки 0/1, 1 → 2/3, ...
 	r := row % rowsPerColumn
 	keyCol, labelCol := col*2, col*2+1
 
 	p.SetCell(r, keyCol, tview.NewTableCell(fmt.Sprintf("<%s>", key)).
 		SetTextColor(tcell.ColorBlue).SetSelectable(false))
-	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).
-		SetExpansion(1).SetTextColor(tcell.ColorGray).SetSelectable(false))
+	p.SetCell(r, labelCol, tview.NewTableCell(" "+label).SetTextColor(tcell.ColorGray).SetSelectable(false))
 }
 
 // setPresetCell renders a log time-preset key+label.
@@ -156,8 +173,8 @@ func (p *PageActions) handleKey(ev *tcell.EventKey) *tcell.EventKey {
 
 	case viewServers:
 		switch ev.Rune() {
-			case 'l':
-				p.app.switchTo(viewRequestLogs)
+		case 'l':
+			p.app.switchTo(viewRequestLogs)
 		}
 
 	}

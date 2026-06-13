@@ -7,18 +7,22 @@ import (
 )
 
 const (
-	viewIncidents    = "incidents"
-	viewComponents   = "components"
-	viewMaintenance  = "maintenance"
-	viewTeam         = "team"
-	viewServers      = "servers"
-	viewTemplates    = "templates"
-	viewPublicPages  = "public-pages"
-	viewRequestLogs  = "request-logs"
-	viewMaintDescribe = "maintDescribe"
-	viewIncDescribe   = "incDescribe"
-	viewTmplDescribe  = "tmplDescribe"
-	viewCompDescribe  = "compDescribe"
+	viewIncidents       = "incidents"
+	viewComponents      = "components"
+	viewMaintenance     = "maintenance"
+	viewTeam            = "team"
+	viewServers         = "servers"
+	viewTemplates       = "templates"
+	viewPublicPages     = "public-pages"
+	viewSubscribers     = "subscribers"
+	viewRequestLogs     = "request-logs"
+	viewMaintDescribe   = "maintDescribe"
+	viewIncDescribe     = "incDescribe"
+	viewTmplDescribe    = "tmplDescribe"
+	viewCompDescribe    = "compDescribe"
+	viewPubPageDescribe = "pubPageDescribe"
+	viewServerDescribe  = "serverDescribe"
+	viewSubDescribe     = "subDescribe"
 )
 
 // App is the main TUI application.
@@ -42,6 +46,7 @@ type App struct {
 	servers      *ServersView
 	templates    *TemplatesView
 	publicPages  *PublicPagesView
+	subscribers  *SubscribersView
 	logs         *RequestLogView
 	splash       *SplashView
 	user         *api.User
@@ -76,6 +81,7 @@ func (a *App) build() {
 	a.servers = newServersView(a)
 	a.templates = newTemplatesView(a)
 	a.publicPages = newPublicPagesView(a)
+	a.subscribers = newSubscribersView(a)
 	a.logs = newRequestLogView(a)
 	a.splash = newSplashView(a)
 	a.prompt = newCommandPrompt(a)
@@ -87,6 +93,7 @@ func (a *App) build() {
 	a.pages.AddPage(viewServers, a.servers.root(), true, false)
 	a.pages.AddPage(viewTemplates, a.templates.root(), true, false)
 	a.pages.AddPage(viewPublicPages, a.publicPages.root(), true, false)
+	a.pages.AddPage(viewSubscribers, a.subscribers.root(), true, false)
 	a.pages.AddPage(viewRequestLogs, a.logs.root(), true, false)
 
 	a.pages.addListener(a.breadcrumbs)
@@ -150,9 +157,33 @@ func (a *App) switchStatusPage(idx int) {
 	if idx < 0 || idx >= len(pages) {
 		return
 	}
-	a.statusPage = &pages[idx]
+	a.setCurrentPage(&pages[idx])
+}
+
+// setCurrentPage makes p the active status page, records the visit and refreshes.
+func (a *App) setCurrentPage(p *api.StatusPage) {
+	if p == nil {
+		return
+	}
+	cp := *p // copy: callers may pass a pointer into a slice that is reused on refresh
+	a.statusPage = &cp
+	a.recordPageVisit(cp.Slug)
 	a.renderHeader()
-	a.refreshCurrent()
+
+	if (a.current != viewPublicPages) {
+		a.refreshCurrent()
+	}
+}
+
+// recordPageVisit records slug as the most-recently visited page and persists it
+// as the default page.
+func (a *App) recordPageVisit(slug string) {
+	if a.client == nil || a.client.AuthRC == nil || slug == "" {
+		return
+	}
+	a.client.AuthRC.RecordPageVisit(slug)
+	a.client.AuthRC.DefaultStatusPage = slug
+	_ = api.SaveAuthRC(a.client.BaseURL, a.client.AuthRC)
 }
 
 func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
@@ -162,7 +193,7 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 
 	name, _ := a.pages.GetFrontPage()
 	switch name {
-	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, viewPublicPages, viewRequestLogs:
+	case viewIncidents, viewComponents, viewMaintenance, viewTeam, viewServers, viewTemplates, viewPublicPages, viewSubscribers, viewRequestLogs:
 	default:
 		return ev
 	}
@@ -190,6 +221,9 @@ func (a *App) onGlobalKey(ev *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case 'm':
 		a.switchTo(viewMaintenance)
+		return nil
+	case 's':
+		a.switchTo(viewSubscribers)
 		return nil
 	case 'r':
 		a.refreshCurrent()
@@ -224,6 +258,8 @@ func (a *App) currentSearch() (func(string), func()) {
 		return a.templates.filter, a.templates.clearFilter
 	case viewPublicPages:
 		return a.publicPages.filter, a.publicPages.clearFilter
+	case viewSubscribers:
+		return a.subscribers.filter, a.subscribers.clearFilter
 	case viewRequestLogs:
 		return a.logs.filter, a.logs.clearFilter
 	}
@@ -264,6 +300,8 @@ func (a *App) refreshCurrent() {
 		a.templates.refresh()
 	case viewPublicPages:
 		a.publicPages.refresh()
+	case viewSubscribers:
+		a.subscribers.refresh()
 	case viewRequestLogs:
 		a.logs.refresh()
 	}
@@ -304,7 +342,6 @@ func (a *App) switchServer(domain string) {
 		})
 	}()
 }
-
 
 func (a *App) dismiss() {
 	if a.current == "" {

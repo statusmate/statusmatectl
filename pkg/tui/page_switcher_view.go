@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/derailed/tcell/v2"
 	"github.com/derailed/tview"
@@ -28,8 +29,25 @@ func newPageSwitcher(app *App) *PageSwitcher {
 	return p
 }
 
+// setPages stores the pages sorted by recency (most recently visited first) so
+// the most-used pages occupy the visible slots and the lowest digit keys.
 func (p *PageSwitcher) setPages(pages []api.StatusPage) {
-	p.pages = pages
+	sorted := make([]api.StatusPage, len(pages))
+	copy(sorted, pages)
+
+	var recent []string
+	if p.app.client != nil && p.app.client.AuthRC != nil {
+		recent = p.app.client.AuthRC.RecentPages
+	}
+	rank := make(map[string]int, len(recent))
+	for i, slug := range recent {
+		rank[slug] = i + 1 // higher rank = more recently visited
+	}
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return rank[sorted[i].Slug] > rank[sorted[j].Slug]
+	})
+
+	p.pages = sorted
 	p.render()
 }
 
